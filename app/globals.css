@@ -1,0 +1,549 @@
+@import 'tailwindcss';
+@import 'tw-animate-css';
+
+@custom-variant dark (&:is(.dark *));
+
+:root {
+  --background: oklch(1 0 0);
+  --foreground: oklch(0.145 0 0);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.145 0 0);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.145 0 0);
+  --primary: oklch(0.205 0 0);
+  --primary-foreground: oklch(0.985 0 0);
+  --secondary: oklch(0.97 0 0);
+  --secondary-foreground: oklch(0.205 0 0);
+  --muted: oklch(0.97 0 0);
+  --muted-foreground: oklch(0.556 0 0);
+  --accent: oklch(0.97 0 0);
+  --accent-foreground: oklch(0.205 0 0);
+  --destructive: oklch(0.577 0.245 27.325);
+  --destructive-foreground: oklch(0.577 0.245 27.325);
+  --border: oklch(0.922 0 0);
+  --input: oklch(0.922 0 0);
+  --ring: oklch(0.708 0 0);
+  --chart-1: oklch(0.646 0.222 41.116);
+  --chart-2: oklch(0.6 0.118 184.704);
+  --chart-3: oklch(0.398 0.07 227.392);
+  --chart-4: oklch(0.828 0.189 84.429);
+  --chart-5: oklch(0.769 0.188 70.08);
+  --radius: 0.625rem;
+  --sidebar: oklch(0.985 0 0);
+  --sidebar-foreground: oklch(0.145 0 0);
+  --sidebar-primary: oklch(0.205 0 0);
+  --sidebar-primary-foreground: oklch(0.985 0 0);
+  --sidebar-accent: oklch(0.97 0 0);
+  --sidebar-accent-foreground: oklch(0.205 0 0);
+  --sidebar-border: oklch(0.922 0 0);
+  --sidebar-ring: oklch(0.708 0 0);
+}
+
+.dark {
+  --background: oklch(0.145 0 0);
+  --foreground: oklch(0.985 0 0);
+  --card: oklch(0.145 0 0);
+  --card-foreground: oklch(0.985 0 0);
+  --popover: oklch(0.145 0 0);
+  --popover-foreground: oklch(0.985 0 0);
+  --primary: oklch(0.985 0 0);
+  --primary-foreground: oklch(0.205 0 0);
+  --secondary: oklch(0.269 0 0);
+  --secondary-foreground: oklch(0.985 0 0);
+  --muted: oklch(0.269 0 0);
+  --muted-foreground: oklch(0.708 0 0);
+  --accent: oklch(0.269 0 0);
+  --accent-foreground: oklch(0.985 0 0);
+  --destructive: oklch(0.396 0.141 25.723);
+  --destructive-foreground: oklch(0.637 0.237 25.331);
+  --border: oklch(0.269 0 0);
+  --input: oklch(0.269 0 0);
+  --ring: oklch(0.439 0 0);
+  --chart-1: oklch(0.488 0.243 264.376);
+  --chart-2: oklch(0.696 0.17 162.48);
+  --chart-3: oklch(0.769 0.188 70.08);
+  --chart-4: oklch(0.627 0.265 303.9);
+  --chart-5: oklch(0.645 0.246 16.439);
+  --sidebar: oklch(0.205 0 0);
+  --sidebar-foreground: oklch(0.985 0 0);
+  --sidebar-primary: oklch(0.488 0.243 264.376);
+  --sidebar-primary-foreground: oklch(0.985 0 0);
+  --sidebar-accent: oklch(0.269 0 0);
+  --sidebar-accent-foreground: oklch(0.985 0 0);
+  --sidebar-border: oklch(0.269 0 0);
+  --sidebar-ring: oklch(0.439 0 0);
+}
+
+@theme inline {
+  --font-sans: 'Geist', 'Geist Fallback';
+  --font-mono: 'Geist Mono', 'Geist Mono Fallback';
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+/* Ocean Scene Styles */
+@font-face {
+  font-family: "PPNeueBit";
+  src: url("https://assets.codepen.io/7558/PPNeueBit-Bold.woff2") format("woff2");
+  font-weight: bold;
+  font-style: normal;
+}
+
+.ocean-canvas {
+  display: block;
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 0;
+}
+
+.scroll-container {
+  position: relative;
+  height: 1500vh;
+  width: 100%;
+  pointer-events: none;
+}
+
+.audio-toggle {
+  position: fixed;
+  top: 24px;
+  left: 24px;
+  width: 12px;
+  height: 12px;
+  background: rgba(255, 255, 255, 0.5);
+  border-radius: 50%;
+  border: none;
+  cursor: pointer;
+  z-index: 1000;
+  transition: opacity 0.3s ease;
+  pointer-events: auto;
+}
+
+.audio-toggle:hover {
+  opacity: 0.8;
+}
+
+.audio-toggle.playing {
+  background: rgba(255, 255, 255, 0.9);
+}
+
+.story-toggle {
+  position: fixed;
+  top: 24px;
+  left: 48px;
+  width: 10px;
+  height: 10px;
+  background: rgba(255, 255, 255, 0.5);
+  border: none;
+  cursor: pointer;
+  z-index: 1000;
+  transition: opacity 0.3s ease;
+  pointer-events: auto;
+}
+
+.story-toggle:hover {
+  opacity: 0.8;
+}
+
+.story-toggle.active {
+  background: rgba(255, 255, 255, 0.9);
+}
+
+.credits-toggle {
+  position: fixed;
+  top: 24px;
+  left: 70px;
+  width: 0;
+  height: 0;
+  border-left: 6px solid transparent;
+  border-right: 6px solid transparent;
+  border-bottom: 10px solid rgba(255, 255, 255, 0.5);
+  background: transparent;
+  cursor: pointer;
+  z-index: 1000;
+  transition: opacity 0.3s ease;
+  pointer-events: auto;
+}
+
+.credits-toggle:hover {
+  opacity: 0.8;
+}
+
+.credits-toggle.active {
+  border-bottom-color: rgba(255, 255, 255, 0.9);
+}
+
+.story-panel {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.05);
+  z-index: 500;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.5s ease, visibility 0.5s ease;
+  pointer-events: none;
+}
+
+.story-panel.visible {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+}
+
+.story-content {
+  font-family: "PPNeueBit", monospace;
+  font-size: clamp(18px, 1.3vw, 22px);
+  color: rgba(255, 255, 255, 0.85);
+  text-align: center;
+  line-height: 1.6;
+  max-width: 480px;
+  padding: 20px;
+  text-wrap: pretty;
+}
+
+.story-content p {
+  margin: 0 0 0.8em 0;
+}
+
+.story-content p:last-child {
+  margin-bottom: 0;
+}
+
+.credits-panel {
+  position: fixed;
+  bottom: 24px;
+  left: 24px;
+  z-index: 500;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.5s ease, visibility 0.5s ease;
+  pointer-events: none;
+}
+
+.credits-panel.visible {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+}
+
+.credits-panel a {
+  font-family: "PPNeueBit", monospace;
+  font-size: 16px;
+  color: rgba(255, 255, 255, 0.5);
+  text-decoration: none;
+  letter-spacing: 0.05em;
+  transition: color 0.3s ease;
+  text-transform: uppercase;
+}
+
+.credits-panel a:hover {
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.scroll-progress {
+  position: fixed;
+  left: 24px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 1px;
+  height: 120px;
+  background: rgba(255, 255, 255, 0.15);
+  z-index: 100;
+}
+
+.scroll-progress-fill {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 0%;
+  background: rgba(255, 255, 255, 0.4);
+  transition: height 0.1s ease-out;
+}
+
+.scroll-marker {
+  position: absolute;
+  left: 10px;
+  font-family: "PPNeueBit", monospace;
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.2);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  transition: color 0.3s ease;
+}
+
+.scroll-marker.past {
+  top: -4px;
+}
+
+.scroll-marker.present {
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.scroll-marker.future {
+  bottom: -4px;
+}
+
+.scroll-marker.active {
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.subtitle-container {
+  position: fixed;
+  bottom: 10%;
+  left: 0;
+  right: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 100;
+  pointer-events: none;
+  transition: opacity 0.4s ease, visibility 0.4s ease;
+}
+
+.subtitle {
+  font-family: "PPNeueBit", monospace;
+  font-size: clamp(18px, 2.2vw, 26px);
+  font-weight: bold;
+  color: var(--subtitle-color, rgba(255, 255, 255, 0.95));
+  text-align: center;
+  letter-spacing: 0.02em;
+  line-height: 1.5;
+  max-width: 80%;
+  padding: 4px 12px;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.95);
+}
+
+.subtitle .char {
+  display: inline-block;
+  opacity: 0;
+  filter: blur(8px);
+}
+
+.style-noir .subtitle {
+  --subtitle-color: #f0d856;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.95), 0 0 10px rgba(240, 216, 86, 0.3);
+}
+
+.style-retro .subtitle {
+  --subtitle-color: #ffffff;
+  text-shadow: 0 0 5px rgba(255, 255, 255, 0.8), 0 0 15px rgba(255, 255, 255, 0.4);
+}
+
+.style-synthwave .subtitle {
+  --subtitle-color: #ff71ce;
+  text-shadow: 0 0 10px rgba(255, 113, 206, 0.8), 0 0 20px rgba(1, 205, 254, 0.5);
+}
+
+.style-dream .subtitle {
+  --subtitle-color: rgba(255, 255, 255, 0.9);
+  text-shadow: 0 0 20px rgba(255, 255, 255, 0.8), 0 0 40px rgba(255, 240, 220, 0.4);
+}
+
+.style-pixelated .subtitle {
+  --subtitle-color: #00ffff;
+  text-shadow: 2px 2px 0px rgba(0, 0, 0, 0.8);
+  image-rendering: pixelated;
+}
+
+.style-crt .subtitle {
+  --subtitle-color: #00ff00;
+  text-shadow: 0 0 8px rgba(0, 255, 0, 0.8), 2px 0 2px rgba(255, 0, 0, 0.4), -2px 0 2px rgba(0, 0, 255, 0.4);
+}
+
+.style-posterized .subtitle {
+  --subtitle-color: #ff6b35;
+  text-shadow: 3px 3px 0px rgba(0, 0, 0, 0.9), 0 0 10px rgba(255, 107, 53, 0.5);
+}
+
+.style-ascii .subtitle {
+  --subtitle-color: #00ff33;
+  text-shadow: 0 0 10px rgba(0, 255, 51, 0.8), 0 0 20px rgba(0, 255, 51, 0.4);
+  font-family: monospace;
+  letter-spacing: 0.1em;
+}
+
+.help-text {
+  position: fixed;
+  bottom: 48px;
+  left: 24px;
+  font-size: 14px;
+  text-transform: uppercase;
+  z-index: 10;
+  font-family: "PPNeueBit", monospace;
+  font-size: clamp(12px, 1.3vw, 14px);
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.controls-panel {
+  position: fixed;
+  top: 8px;
+  right: 8px;
+  z-index: 1001;
+  width: 200px;
+  background: rgba(0, 0, 0, 0.7);
+  border-radius: 8px;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  backdrop-filter: blur(10px);
+}
+
+.control-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.control-group label {
+  font-family: "PPNeueBit", monospace;
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.6);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+.control-group select {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 4px;
+  color: rgba(255, 255, 255, 0.9);
+  font-family: "PPNeueBit", monospace;
+  font-size: 13px;
+  padding: 6px 8px;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.control-group select:hover {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.control-group select:focus {
+  outline: none;
+  border-color: rgba(255, 255, 255, 0.4);
+}
+
+.control-group select option {
+  background: #1a1a1a;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+/* Pixelated Button Styles */
+.pixel-button {
+  background-color: rgba(255, 255, 255, 0.9);
+  color: #000;
+  border: none;
+  text-decoration: none;
+  white-space: nowrap;
+  font-family: "PPNeueBit", monospace;
+  font-weight: 400;
+  font-size: 1rem;
+  line-height: 3rem;
+  text-transform: uppercase;
+  display: flex;
+  align-items: center;
+  width: max-content;
+  height: 3rem;
+  padding: 0 1.5rem;
+  user-select: none;
+  touch-action: manipulation;
+  position: relative;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.pixel-button::before {
+  content: "";
+  position: absolute;
+  background-color: inherit;
+  top: 3px;
+  bottom: 3px;
+  left: -3px;
+  right: -3px;
+  z-index: -1;
+}
+
+.pixel-button::after {
+  content: "";
+  position: absolute;
+  background-color: inherit;
+  top: 6px;
+  bottom: 6px;
+  left: -6px;
+  right: -6px;
+  z-index: -2;
+}
+
+.pixel-button:hover {
+  transform: translateY(-1px);
+  background-color: rgba(255, 255, 255, 1);
+  text-shadow: 0 0 0.5rem rgba(0, 0, 0, 0.3);
+}
+
+.pixel-button:active {
+  transform: translateY(1px);
+}
+
+.pixel-button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  transform: none !important;
+}
+
+.pixel-button:disabled:hover {
+  background-color: rgba(255, 255, 255, 0.9);
+  text-shadow: none;
+}
