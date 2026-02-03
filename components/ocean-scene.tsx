@@ -786,6 +786,39 @@ export function OceanScene() {
   const [showSplash, setShowSplash] = useState(true)
   const [musicEnabled, setMusicEnabled] = useState(true)
   const audioRef = useRef<HTMLAudioElement | null>(null)
+  
+  // Initialize audio element
+  useEffect(() => {
+    if (typeof window !== "undefined" && !audioRef.current) {
+      const audio = new Audio("/music/Theme A.mp3")
+      audio.loop = true
+      audio.volume = 0.3
+      audio.preload = "auto"
+      // iOS/Safari compatibility
+      audio.setAttribute("playsinline", "true")
+      audioRef.current = audio
+    }
+    
+    return () => {
+      if (audioRef.current) {
+        audioRef.current.pause()
+        audioRef.current = null
+      }
+    }
+  }, [])
+  
+  // Handle music enabled/disabled
+  useEffect(() => {
+    if (!audioRef.current) return
+    
+    if (musicEnabled && isPlaying) {
+      audioRef.current.play().catch((e) => {
+        console.log("Audio play failed:", e)
+      })
+    } else {
+      audioRef.current.pause()
+    }
+  }, [musicEnabled, isPlaying])
 
   // Fishing game state
   const [fishCaught, setFishCaught] = useState(0)
@@ -1171,32 +1204,19 @@ export function OceanScene() {
     subtitlesPausedRef.current = storyVisible
   }, [storyVisible])
 
-  const toggleAudio = () => {
-    if (!audioRef.current) {
-      audioRef.current = new Audio("https://assets.codepen.io/7558/lxstnght-remember-m.mp3")
-      audioRef.current.loop = true
-      audioRef.current.volume = 0.4
-    }
-
-    if (isPlaying) {
-      audioRef.current.pause()
-    } else {
-      audioRef.current.play().catch((e) => console.log("Audio play failed:", e))
-    }
-    setIsPlaying(!isPlaying)
-  }
-
   // Handle splash screen play button
   const handlePlay = () => {
     setShowSplash(false)
     
-    // Play audio on user interaction
-    if (audioRef.current) {
-      audioRef.current.volume = 0.3
+    // Play audio on user interaction if music is enabled
+    if (musicEnabled && audioRef.current) {
+      setIsPlaying(true)
       audioRef.current.play().catch((e) => {
-        console.log("[v0] Audio play failed:", e)
-        // If autoplay fails, user may need to enable audio manually
+        console.log("Audio play failed:", e)
+        setIsPlaying(false)
       })
+    } else {
+      setIsPlaying(false)
     }
   }
 
@@ -1492,13 +1512,6 @@ export function OceanScene() {
         }
       `}</style>
       
-      {/* Background Audio */}
-      <audio
-        ref={audioRef}
-        src="/images/cymatics-20-20dreams-20-2078-20bpm-20f-20min.mp3"
-        loop
-        preload="auto"
-      />
 
       {/* Splash Screen */}
       {showSplash && (
@@ -2082,14 +2095,6 @@ export function OceanScene() {
         </div>
       </div>
 
-      {/* Background Music */}
-      <audio
-        ref={audioRef}
-        loop
-        preload="auto"
-      >
-        <source src="/music.mp3" type="audio/mpeg" />
-      </audio>
     </div>
   )
 }
