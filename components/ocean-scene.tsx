@@ -848,29 +848,29 @@ export function OceanScene() {
   ]
 
   
-  // Deckhand counts (how many of each type owned)
-  const [deckhands, setDeckhands] = useState({
-    greenhorn: 0,
-    deckhand: 0,
-    seniorDeckhand: 0,
-    mate: 0,
-    firstMate: 0,
+  // Net counts (how many of each type owned)
+  const [nets, setNets] = useState({
+    basic: 0,
+    standard: 0,
+    large: 0,
+    expert: 0,
+    legendary: 0,
   })
   
-  // Dock modal state
-  const [dockOpen, setDockOpen] = useState(false)
-  const [dockNotifications, setDockNotifications] = useState(1) // Set to 0 to hide badge
+  // Shop modal state
+  const [shopOpen, setShopOpen] = useState(false)
+  const [shopNotifications, setShopNotifications] = useState(1) // Set to 0 to hide badge
   
-  // Crew modal state
-  const [crewOpen, setCrewOpen] = useState(false)
+  // Tacklebox modal state
+  const [tackleboxOpen, setTackleboxOpen] = useState(false)
   
-  // Progress tracking for each deckhand type (0-100)
-  const [deckhandProgress, setDeckhandProgress] = useState({
-    greenhorn: 0,
-    deckhand: 0,
-    seniorDeckhand: 0,
-    mate: 0,
-    firstMate: 0,
+  // Progress tracking for each net type (0-100)
+  const [netProgress, setNetProgress] = useState({
+    basic: 0,
+    standard: 0,
+    large: 0,
+    expert: 0,
+    legendary: 0,
   })
 
   const subtitleRef = useRef<HTMLDivElement>(null)
@@ -1325,35 +1325,35 @@ export function OceanScene() {
     setFishCaught(0)
   }
 
-  // Deckhand data
-  const deckhandTypes = {
-    greenhorn: { name: "greenhorn", cost: 25, fishPerSecond: 0.1 },
-    deckhand: { name: "deckhand", cost: 250, fishPerSecond: 0.5 },
-    seniorDeckhand: { name: "senior deckhand", cost: 1000, fishPerSecond: 2 },
-    mate: { name: "mate", cost: 5000, fishPerSecond: 5 },
-    firstMate: { name: "first mate", cost: 25000, fishPerSecond: 10 },
+  // Net data
+  const netTypes = {
+    basic: { name: "Basic Net", cost: 25, fishPerSecond: 0.1 },
+    standard: { name: "Standard Net", cost: 250, fishPerSecond: 0.5 },
+    large: { name: "Large Net", cost: 1000, fishPerSecond: 2 },
+    expert: { name: "Expert Net", cost: 5000, fishPerSecond: 5 },
+    legendary: { name: "Legendary Net", cost: 25000, fishPerSecond: 10 },
   }
 
-  // Hire deckhand
-  const hireDeckhand = (type: keyof typeof deckhands) => {
-    const cost = deckhandTypes[type].cost
+  // Buy net
+  const buyNet = (type: keyof typeof nets) => {
+    const cost = netTypes[type].cost
     if (goldPieces >= cost) {
       setGoldPieces((prev) => prev - cost)
-      setDeckhands((prev) => ({ ...prev, [type]: prev[type] + 1 }))
+      setNets((prev) => ({ ...prev, [type]: prev[type] + 1 }))
     }
   }
 
   // Calculate total fish per second
   const calculateFishPerSecond = () => {
     let total = 0
-    Object.keys(deckhands).forEach((key) => {
-      const type = key as keyof typeof deckhands
-      total += deckhands[type] * deckhandTypes[type].fishPerSecond
+    Object.keys(nets).forEach((key) => {
+      const type = key as keyof typeof nets
+      total += nets[type] * netTypes[type].fishPerSecond
     })
     return total
   }
 
-  // Auto-generate fish from deckhands
+  // Auto-generate fish from nets
   useEffect(() => {
     const fishPerSecond = calculateFishPerSecond()
     if (fishPerSecond === 0) return
@@ -1370,17 +1370,17 @@ export function OceanScene() {
     }, 1000)
 
     return () => clearInterval(interval)
-  }, [deckhands])
+  }, [nets])
 
-  // Animate progress bars for each deckhand type
+  // Animate progress bars for each net type
   useEffect(() => {
     const interval = setInterval(() => {
-      setDeckhandProgress((prev) => {
+      setNetProgress((prev) => {
         const updated = { ...prev }
-        Object.keys(deckhandTypes).forEach((key) => {
-          const type = key as keyof typeof deckhands
-          if (deckhands[type] > 0) {
-            const info = deckhandTypes[type]
+        Object.keys(netTypes).forEach((key) => {
+          const type = key as keyof typeof nets
+          if (nets[type] > 0) {
+            const info = netTypes[type]
             const timeToOneFish = 1 / info.fishPerSecond // seconds per fish
             const incrementPerTick = (100 / timeToOneFish) / 10 // 10 ticks per second for smooth animation
 
@@ -1392,7 +1392,7 @@ export function OceanScene() {
     }, 100) // Update every 100ms for smooth animation
 
     return () => clearInterval(interval)
-  }, [deckhands])
+  }, [nets])
 
   const getStyleClass = () => {
     switch (currentStyle) {
@@ -1607,9 +1607,9 @@ export function OceanScene() {
         {fishCaught} fish
       </div>
 
-      {/* Dock Button */}
+      {/* Shop Button */}
       <button
-        onClick={() => setDockOpen(true)}
+        onClick={() => setShopOpen(true)}
         className="pixel-button"
         style={{
           position: "fixed",
@@ -1622,8 +1622,8 @@ export function OceanScene() {
           zIndex: 100,
         }}
       >
-        dock
-        {dockNotifications > 0 && (
+        shop
+        {shopNotifications > 0 && (
           <span
             style={{
               position: "absolute",
@@ -1641,14 +1641,14 @@ export function OceanScene() {
               justifyContent: "center",
             }}
           >
-            {dockNotifications}
+            {shopNotifications}
           </span>
         )}
       </button>
 
-      {/* Crew Button */}
+      {/* Tacklebox Button */}
       <button
-        onClick={() => setCrewOpen(true)}
+        onClick={() => setTackleboxOpen(true)}
         className="pixel-button"
         style={{
           position: "fixed",
@@ -1661,12 +1661,12 @@ export function OceanScene() {
           zIndex: 100,
         }}
       >
-        crew
+        tacklebox
       </button>
 
-      {/* Dock Sidepanel - Slides in from right */}
+      {/* Shop Sidepanel - Slides in from right */}
       <div
-        onClick={() => setDockOpen(false)}
+        onClick={() => setShopOpen(false)}
         style={{
           position: "fixed",
           top: 0,
@@ -1676,8 +1676,8 @@ export function OceanScene() {
           background: "rgba(0, 0, 0, 0.4)",
           backdropFilter: "blur(8px)",
           zIndex: 500,
-          pointerEvents: dockOpen ? "auto" : "none",
-          opacity: dockOpen ? 1 : 0,
+          pointerEvents: shopOpen ? "auto" : "none",
+          opacity: shopOpen ? 1 : 0,
           transition: "opacity 0.3s ease",
         }}
       >
@@ -1686,7 +1686,7 @@ export function OceanScene() {
           style={{
             position: "fixed",
             top: 0,
-            right: dockOpen ? 0 : "-400px",
+            right: shopOpen ? 0 : "-400px",
             height: "100vh",
             width: "min(400px, 90vw)",
             fontFamily: "PPNeueBit, monospace",
@@ -1701,7 +1701,7 @@ export function OceanScene() {
             transition: "right 0.3s ease",
           }}
         >
-          <div style={{ marginBottom: "24px", fontSize: "clamp(16px, 1.8vw, 20px)" }}>dock</div>
+          <div style={{ marginBottom: "24px", fontSize: "clamp(16px, 1.8vw, 20px)" }}>shop</div>
 
           {/* GP Display */}
           <div
@@ -1733,18 +1733,18 @@ export function OceanScene() {
             sell all fish ({fishCaught})
           </button>
 
-          {/* Deckhands Section */}
+          {/* Buy Gear Section */}
           <div style={{ marginBottom: "16px", fontSize: "clamp(14px, 1.5vw, 16px)", color: "rgba(255, 255, 255, 0.6)" }}>
-            hire deckhands
+            buy gear
           </div>
 
-          {/* Deckhand Cards */}
+          {/* Net Cards */}
           <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-            {Object.keys(deckhandTypes).map((key) => {
-              const type = key as keyof typeof deckhands
-              const info = deckhandTypes[type]
+            {Object.keys(netTypes).map((key) => {
+              const type = key as keyof typeof nets
+              const info = netTypes[type]
               const canAfford = goldPieces >= info.cost
-              const owned = deckhands[type]
+              const owned = nets[type]
 
               return (
                 <div
@@ -1783,7 +1783,7 @@ export function OceanScene() {
                     )}
                   </div>
                   <button
-                    onClick={() => hireDeckhand(type)}
+                    onClick={() => buyNet(type)}
                     disabled={!canAfford}
                     className="pixel-button"
                     style={{
@@ -1802,9 +1802,9 @@ export function OceanScene() {
         </div>
       </div>
 
-      {/* Crew Sidepanel - Slides in from left */}
+      {/* Tacklebox Sidepanel - Slides in from left */}
       <div
-        onClick={() => setCrewOpen(false)}
+        onClick={() => setTackleboxOpen(false)}
         style={{
           position: "fixed",
           top: 0,
@@ -1814,8 +1814,8 @@ export function OceanScene() {
           background: "rgba(0, 0, 0, 0.4)",
           backdropFilter: "blur(8px)",
           zIndex: 500,
-          pointerEvents: crewOpen ? "auto" : "none",
-          opacity: crewOpen ? 1 : 0,
+          pointerEvents: tackleboxOpen ? "auto" : "none",
+          opacity: tackleboxOpen ? 1 : 0,
           transition: "opacity 0.3s ease",
         }}
       >
@@ -1824,7 +1824,7 @@ export function OceanScene() {
           style={{
             position: "fixed",
             top: 0,
-            left: crewOpen ? 0 : "-400px",
+            left: tackleboxOpen ? 0 : "-400px",
             height: "100vh",
             width: "min(400px, 90vw)",
             fontFamily: "PPNeueBit, monospace",
@@ -1847,7 +1847,7 @@ export function OceanScene() {
               alignItems: "center",
             }}
           >
-            <div style={{ fontSize: "clamp(16px, 1.8vw, 20px)" }}>crew</div>
+            <div style={{ fontSize: "clamp(16px, 1.8vw, 20px)" }}>tacklebox</div>
             <div
               style={{
                 fontSize: "clamp(12px, 1.3vw, 14px)",
@@ -1859,7 +1859,7 @@ export function OceanScene() {
             </div>
           </div>
           
-          {/* Crew Cards Container */}
+          {/* Net Cards Container */}
           <div
             style={{
               display: "flex",
@@ -1867,89 +1867,82 @@ export function OceanScene() {
               gap: "16px",
             }}
           >
-            {/* Captain Card */}
-            <div
-              style={{
-                background: "rgba(255, 255, 255, 0.05)",
-                border: "1px solid rgba(255, 255, 255, 0.1)",
-                borderRadius: "6px",
-                padding: "20px",
-                transition: "all 0.3s ease",
-              }}
-            >
+            {/* Show "No Nets" message if user has no nets */}
+            {Object.values(nets).every(count => count === 0) ? (
               <div
                 style={{
-                  fontSize: "clamp(12px, 1.3vw, 14px)",
+                  background: "rgba(255, 255, 255, 0.05)",
+                  border: "1px solid rgba(255, 255, 255, 0.1)",
+                  borderRadius: "6px",
+                  padding: "20px",
+                  textAlign: "center",
                   color: "rgba(255, 255, 255, 0.5)",
-                  marginBottom: "8px",
+                  fontSize: "clamp(13px, 1.4vw, 15px)",
                 }}
               >
-                  captain
-                </div>
-                <div style={{ fontSize: "clamp(14px, 1.5vw, 16px)", lineHeight: "1.5" }}>
-                  you, the captain of Cederglenn Shores
-                </div>
-            </div>
+                no nets
+              </div>
+            ) : (
+              /* Owned Nets */
+              Object.keys(nets).map((key) => {
+                const type = key as keyof typeof nets
+                const count = nets[type]
+                const info = netTypes[type]
+                const progress = netProgress[type]
 
-            {/* Hired Deckhands */}
-            {Object.keys(deckhands).map((key) => {
-              const type = key as keyof typeof deckhands
-              const count = deckhands[type]
-              const info = deckhandTypes[type]
-              const progress = deckhandProgress[type]
+                if (count === 0) return null
 
-              if (count === 0) return null
-
-              return (
-                <div
-                  key={key}
-                  style={{
-                    position: "relative",
-                    overflow: "hidden",
-                    border: "1px solid rgba(255, 255, 255, 0.1)",
-                    borderRadius: "6px",
-                    padding: "20px",
-                    transition: "all 0.3s ease",
-                  }}
-                >
-                  {/* Progress Bar Background */}
+                return (
                   <div
+                    key={key}
                     style={{
-                      position: "absolute",
-                      top: 0,
-                      left: 0,
-                      height: "100%",
-                      width: `${progress}%`,
-                      background: "rgba(255, 255, 255, 0.08)",
-                      transition: "width 0.1s linear",
-                      zIndex: 0,
+                      position: "relative",
+                      overflow: "hidden",
+                      border: "1px solid rgba(255, 255, 255, 0.1)",
+                      borderRadius: "6px",
+                      padding: "20px",
+                      transition: "all 0.3s ease",
                     }}
-                  />
-                  
-                  {/* Content */}
-                  <div style={{ position: "relative", zIndex: 1 }}>
+                  >
+                    {/* Progress Bar Background */}
                     <div
                       style={{
-                        fontSize: "clamp(12px, 1.3vw, 14px)",
-                        color: "rgba(255, 255, 255, 0.5)",
-                        marginBottom: "4px",
+                        position: "absolute",
+                        top: 0,
+                        left: 0,
+                        height: "100%",
+                        width: `${progress}%`,
+                        background: "rgba(255, 255, 255, 0.08)",
+                        transition: "width 0.1s linear",
+                        zIndex: 0,
                       }}
-                    >
-                      {info.name} {count > 1 ? `(x${count})` : ""}
-                    </div>
-                    <div
-                      style={{
-                        fontSize: "clamp(13px, 1.4vw, 15px)",
-                        color: "rgba(255, 255, 255, 0.6)",
-                        lineHeight: "1.5",
-                      }}
-                    >
-                      {info.fishPerSecond} fish/sec {count > 1 ? `• total: ${info.fishPerSecond * count} fish/sec` : ""}
+                    />
+                    
+                    {/* Content */}
+                    <div style={{ position: "relative", zIndex: 1 }}>
+                      <div
+                        style={{
+                          fontSize: "clamp(12px, 1.3vw, 14px)",
+                          color: "rgba(255, 255, 255, 0.5)",
+                          marginBottom: "4px",
+                        }}
+                      >
+                        {info.name} {count > 1 ? `(x${count})` : ""}
+                      </div>
+                      <div
+                        style={{
+                          fontSize: "clamp(13px, 1.4vw, 15px)",
+                          color: "rgba(255, 255, 255, 0.6)",
+                          lineHeight: "1.5",
+                        }}
+                      >
+                        {info.fishPerSecond} fish/sec {count > 1 ? `• total: ${info.fishPerSecond * count} fish/sec` : ""}
+                      </div>
                     </div>
                   </div>
-                </div>
-              )
-            })}
+                )
+              })
+            )}
           </div>
         </div>
       </div>
