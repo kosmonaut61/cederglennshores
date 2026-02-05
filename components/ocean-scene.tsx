@@ -838,18 +838,18 @@ export function OceanScene() {
   }
   
   const fishTable: Fish[] = [
-    { id: "1", name: "Bass", rarity: "common", image: "/images/fish-catch.png" },
-    { id: "2", name: "Perch", rarity: "common", image: "/images/fish-catch-2.png" },
-    { id: "3", name: "Carp", rarity: "common", image: "/images/fish-catch-3.png" },
-    { id: "4", name: "Pike", rarity: "uncommon", image: "/images/fish-catch-4.png" },
-    { id: "5", name: "Trout", rarity: "uncommon", image: "/images/fish-catch-5.png" },
-    { id: "6", name: "Salmon", rarity: "uncommon", image: "/images/fish-catch-6.png" },
-    { id: "7", name: "Tuna", rarity: "rare", image: "/images/fish-catch-7.png" },
-    { id: "8", name: "Marlin", rarity: "rare", image: "/images/fish-catch-8.png" },
-    { id: "9", name: "Swordfish", rarity: "epic", image: "/images/fish-catch-9.png" },
-    { id: "10", name: "Leviathan", rarity: "epic", image: "/images/fish-catch-10.png" },
-    { id: "11", name: "Kraken", rarity: "legendary", image: "/images/fish-catch-11.png" },
-    { id: "12", name: "Ancient Sea Serpent", rarity: "legendary", image: "/images/fish-catch-12.png" },
+    { id: "1", name: "Brinewhisk Silverfin", rarity: "common", image: "/images/fish-catch.png" },
+    { id: "2", name: "Cobalt Mudsnapper", rarity: "common", image: "/images/fish-catch-2.png" },
+    { id: "3", name: "Lanternscale Darter", rarity: "common", image: "/images/fish-catch-3.png" },
+    { id: "4", name: "Saffron Reefskipper", rarity: "uncommon", image: "/images/fish-catch-4.png" },
+    { id: "5", name: "Tanglejaw Spratling", rarity: "uncommon", image: "/images/fish-catch-5.png" },
+    { id: "6", name: "Velvet Currentgill", rarity: "uncommon", image: "/images/fish-catch-6.png" },
+    { id: "7", name: "Wickerback Driftfish", rarity: "rare", image: "/images/fish-catch-7.png" },
+    { id: "8", name: "Copperline Siltpicker", rarity: "rare", image: "/images/fish-catch-8.png" },
+    { id: "9", name: "Mistwater Spindleperch", rarity: "epic", image: "/images/fish-catch-9.png" },
+    { id: "10", name: "Cragfin Moonrunner", rarity: "epic", image: "/images/fish-catch-10.png" },
+    { id: "11", name: "Thornbelly Shallowskulk", rarity: "legendary", image: "/images/fish-catch-11.png" },
+    { id: "12", name: "Glimmerhook Tidecarp", rarity: "legendary", image: "/images/fish-catch-12.png" },
   ]
   
   const [caughtFish, setCaughtFish] = useState<Fish | null>(null)
@@ -1504,10 +1504,11 @@ export function OceanScene() {
                 style={{
                   marginTop: "8px",
                   fontFamily: "PPNeueBit, monospace",
-                  fontSize: "clamp(12px, 1.2vw, 14px)",
+                  fontSize: "clamp(16px, 1.5vw, 20px)",
                   color: "rgba(255, 255, 255, 0.9)",
                   textAlign: "center",
                   textTransform: "lowercase",
+                  letterSpacing: "0.05em",
                 }}
               >
                 {caughtFish.name}
