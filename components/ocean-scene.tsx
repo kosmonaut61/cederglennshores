@@ -1513,6 +1513,25 @@ export function OceanScene() {
               >
                 {caughtFish.name}
               </div>
+              <div
+                style={{
+                  marginTop: "4px",
+                  fontFamily: "PPNeueBit, monospace",
+                  fontSize: "clamp(12px, 1.2vw, 16px)",
+                  color: 
+                    caughtFish.rarity === "legendary" ? "rgba(255, 215, 0, 0.95)" :
+                    caughtFish.rarity === "epic" ? "rgba(163, 53, 238, 0.95)" :
+                    caughtFish.rarity === "rare" ? "rgba(59, 130, 246, 0.95)" :
+                    caughtFish.rarity === "uncommon" ? "rgba(34, 197, 94, 0.95)" :
+                    "rgba(156, 163, 175, 0.95)",
+                  textAlign: "center",
+                  textTransform: "uppercase",
+                  letterSpacing: "0.1em",
+                  fontWeight: "bold",
+                }}
+              >
+                {caughtFish.rarity}
+              </div>
             </>
           )}
         </div>
