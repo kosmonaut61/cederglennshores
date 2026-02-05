@@ -875,8 +875,27 @@ export function OceanScene() {
   const [caughtFish, setCaughtFish] = useState<Fish | null>(null)
   const [currentFish, setCurrentFish] = useState<Fish | null>(null) // Fish selected before minigame
   const [fishTransform, setFishTransform] = useState({ flip: 1, rotation: 0 })
+  const [reelProgress, setReelProgress] = useState(0) // Track successful reels for current fish
   const fishingTimerRef = useRef<number | null>(null)
   const successWindowsRef = useRef<Array<{ start: number; end: number }>>([])
+  
+  // Get required successes based on rarity
+  const getRequiredSuccesses = (rarity: FishRarity): number => {
+    switch (rarity) {
+      case "common":
+        return 1
+      case "uncommon":
+        return 2
+      case "rare":
+        return 3
+      case "epic":
+        return 4
+      case "legendary":
+        return 5
+      default:
+        return 1
+    }
+  }
 
   
   // Net counts (how many of each type owned)
@@ -1286,13 +1305,13 @@ export function OceanScene() {
       // Randomly select a fish before the minigame starts
       const randomFish = fishTable[Math.floor(Math.random() * fishTable.length)]
       setCurrentFish(randomFish)
+      setReelProgress(0) // Reset progress for new fish
       
       // Start fishing minigame
       setIsFishing(true)
       setMarkAngle(0)
       
       // Generate 1-3 random success windows
-      // TODO: Difficulty will be affected by fish rarity in the future
       const numWindows = Math.floor(Math.random() * 3) + 1
       const windows: Array<{ start: number; end: number }> = []
       
@@ -1303,7 +1322,8 @@ export function OceanScene() {
       }
       
       successWindowsRef.current = windows
-      console.log("[v0] Selected fish:", randomFish.name, "Rarity:", randomFish.rarity)
+      const requiredSuccesses = getRequiredSuccesses(randomFish.rarity)
+      console.log("[v0] Selected fish:", randomFish.name, "Rarity:", randomFish.rarity, "Required successes:", requiredSuccesses)
       console.log("[v0] Generated success windows:", windows)
     }
   }
@@ -1337,27 +1357,56 @@ export function OceanScene() {
     
     console.log("[v0] Reel attempt - angle:", currentAngle.toFixed(1), "success:", success)
     
-    if (success && currentFish) {
-      // Catch the pre-selected fish
-      setFishCaught((prev) => prev + 1)
-      setCaughtFish(currentFish)
-      setFeedbackState({ type: "success", rarity: currentFish.rarity })
+    if (!currentFish) {
+      setIsFishing(false)
+      setMarkAngle(0)
+      return
+    }
+    
+    const requiredSuccesses = getRequiredSuccesses(currentFish.rarity)
+    
+    if (success) {
+      // Increment progress
+      const newProgress = reelProgress + 1
+      setReelProgress(newProgress)
       
-      // Randomly flip and rotate the fish
-      const randomFlip = Math.random() > 0.5 ? 1 : -1
-      const randomRotation = (Math.random() * 5 + 5) * (Math.random() > 0.5 ? 1 : -1) // 5-10 degrees, either direction
-      setFishTransform({ flip: randomFlip, rotation: randomRotation })
-      
-      setShowFishPopup(true)
-      
-      // Hide fish popup after animation
-      setTimeout(() => {
-        setShowFishPopup(false)
-        setCaughtFish(null)
-      }, 1500)
+      // Check if fish is caught (all required successes met)
+      if (newProgress >= requiredSuccesses) {
+        // Catch the fish!
+        setFishCaught((prev) => prev + 1)
+        setCaughtFish(currentFish)
+        setFeedbackState({ type: "success", rarity: currentFish.rarity })
+        
+        // Randomly flip and rotate the fish
+        const randomFlip = Math.random() > 0.5 ? 1 : -1
+        const randomRotation = (Math.random() * 5 + 5) * (Math.random() > 0.5 ? 1 : -1) // 5-10 degrees, either direction
+        setFishTransform({ flip: randomFlip, rotation: randomRotation })
+        
+        setShowFishPopup(true)
+        
+        // Hide fish popup after animation
+        setTimeout(() => {
+          setShowFishPopup(false)
+          setCaughtFish(null)
+        }, 1500)
+        
+        // Reset progress
+        setReelProgress(0)
+        setCurrentFish(null)
+      } else {
+        // Success but not enough yet - end minigame, require new cast
+        setFeedbackState({ type: "success", rarity: currentFish.rarity })
+        // Clear feedback after brief flash
+        setTimeout(() => {
+          setFeedbackState(null)
+        }, 300)
+        setReelProgress(0) // Reset progress
+        setCurrentFish(null) // Clear fish so user must cast again
+      }
     } else {
+      // Failed attempt - reset everything
       setFeedbackState({ type: "fail" })
-      // Clear current fish on failure
+      setReelProgress(0)
       setCurrentFish(null)
     }
     
@@ -2049,6 +2098,43 @@ export function OceanScene() {
           </div>
         </div>
       </div>
+
+      {/* Hitbar - shows required successes */}
+      {isFishing && currentFish && (
+        <div
+          style={{
+            position: "fixed",
+            bottom: "340px",
+            left: "50%",
+            transform: "translateX(-50%)",
+            zIndex: 200,
+            display: "flex",
+            gap: "8px",
+            alignItems: "center",
+          }}
+        >
+          {Array.from({ length: getRequiredSuccesses(currentFish.rarity) }).map((_, index) => {
+            const isFilled = index < reelProgress
+            const rarityColor = getRarityColor(currentFish.rarity)
+            const filledColor = rarityColor.replace("0.6", "1")
+            const emptyColor = rarityColor.replace("0.6", "0.2")
+            
+            return (
+              <div
+                key={index}
+                style={{
+                  width: "40px",
+                  height: "8px",
+                  background: isFilled ? filledColor : emptyColor,
+                  border: `1px solid ${isFilled ? filledColor : rarityColor.replace("0.6", "0.4")}`,
+                  borderRadius: "4px",
+                  transition: "all 0.3s ease",
+                }}
+              />
+            )
+          })}
+        </div>
+      )}
 
       {/* Fishing Timer - circular indicator */}
       {isFishing && (
