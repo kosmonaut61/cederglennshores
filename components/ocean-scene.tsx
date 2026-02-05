@@ -1366,53 +1366,69 @@ export function OceanScene() {
     const requiredSuccesses = getRequiredSuccesses(currentFish.rarity)
     
     if (success) {
-      // Increment progress
-      const newProgress = reelProgress + 1
-      setReelProgress(newProgress)
+      // Increment progress using functional update to ensure we get latest value
+      setReelProgress((prevProgress) => {
+        const newProgress = prevProgress + 1
+        
+        // Check if fish is caught (all required successes met)
+        if (newProgress >= requiredSuccesses) {
+          // Catch the fish!
+          setFishCaught((prev) => prev + 1)
+          setCaughtFish(currentFish)
+          setFeedbackState({ type: "success", rarity: currentFish.rarity })
+          
+          // Randomly flip and rotate the fish
+          const randomFlip = Math.random() > 0.5 ? 1 : -1
+          const randomRotation = (Math.random() * 5 + 5) * (Math.random() > 0.5 ? 1 : -1) // 5-10 degrees, either direction
+          setFishTransform({ flip: randomFlip, rotation: randomRotation })
+          
+          setShowFishPopup(true)
+          
+          // Reset fishing state first
+          setIsFishing(false)
+          setMarkAngle(0)
+          
+          // Hide fish popup after animation and clear everything
+          setTimeout(() => {
+            setShowFishPopup(false)
+            setCaughtFish(null)
+            setReelProgress(0)
+            setCurrentFish(null)
+          }, 1500)
+        } else {
+          // Success but not enough yet - end minigame, require new cast
+          setFeedbackState({ type: "success", rarity: currentFish.rarity })
+          
+          // Reset fishing state
+          setIsFishing(false)
+          setMarkAngle(0)
+          
+          // Keep fish visible briefly so user can see hitbar progress, then clear
+          setTimeout(() => {
+            setFeedbackState(null)
+            setReelProgress(0)
+            setCurrentFish(null)
+          }, 800) // Longer delay so user can see the filled segments
+        }
+        
+        return newProgress
+      })
       
-      // Check if fish is caught (all required successes met)
-      if (newProgress >= requiredSuccesses) {
-        // Catch the fish!
-        setFishCaught((prev) => prev + 1)
-        setCaughtFish(currentFish)
-        setFeedbackState({ type: "success", rarity: currentFish.rarity })
-        
-        // Randomly flip and rotate the fish
-        const randomFlip = Math.random() > 0.5 ? 1 : -1
-        const randomRotation = (Math.random() * 5 + 5) * (Math.random() > 0.5 ? 1 : -1) // 5-10 degrees, either direction
-        setFishTransform({ flip: randomFlip, rotation: randomRotation })
-        
-        setShowFishPopup(true)
-        
-        // Hide fish popup after animation
-        setTimeout(() => {
-          setShowFishPopup(false)
-          setCaughtFish(null)
-        }, 1500)
-        
-        // Reset progress
-        setReelProgress(0)
-        setCurrentFish(null)
-      } else {
-        // Success but not enough yet - end minigame, require new cast
-        setFeedbackState({ type: "success", rarity: currentFish.rarity })
-        // Clear feedback after brief flash
-        setTimeout(() => {
-          setFeedbackState(null)
-        }, 300)
-        setReelProgress(0) // Reset progress
-        setCurrentFish(null) // Clear fish so user must cast again
-      }
+      return // Exit early since we handled everything in the setState callback
     } else {
       // Failed attempt - reset everything
       setFeedbackState({ type: "fail" })
-      setReelProgress(0)
-      setCurrentFish(null)
+      
+      // Reset fishing state
+      setIsFishing(false)
+      setMarkAngle(0)
+      
+      // Clear everything after brief delay
+      setTimeout(() => {
+        setReelProgress(0)
+        setCurrentFish(null)
+      }, 600)
     }
-    
-    // Reset fishing state
-    setIsFishing(false)
-    setMarkAngle(0)
     
     // Clear feedback after animation
     setTimeout(() => {
@@ -2100,17 +2116,18 @@ export function OceanScene() {
       </div>
 
       {/* Hitbar - shows required successes */}
-      {isFishing && currentFish && (
+      {currentFish && (
         <div
           style={{
             position: "fixed",
-            bottom: "340px",
+            bottom: isFishing ? "340px" : "280px", // Lower when not fishing so it's more visible
             left: "50%",
             transform: "translateX(-50%)",
             zIndex: 200,
             display: "flex",
             gap: "8px",
             alignItems: "center",
+            transition: "bottom 0.3s ease",
           }}
         >
           {Array.from({ length: getRequiredSuccesses(currentFish.rarity) }).map((_, index) => {
