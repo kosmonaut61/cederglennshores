@@ -870,6 +870,41 @@ export function OceanScene() {
     { id: "12", name: "Glimmerhook Tidecarp", rarity: "legendary", image: "/images/fish-catch-12.png" },
   ]
   
+  // Weighted probability system for fish rarity
+  // Weights determine relative probability of each rarity tier
+  const rarityWeights: Record<FishRarity, number> = {
+    common: 50,      // 50% chance total (16.67% per common fish)
+    uncommon: 25,    // 25% chance total (8.33% per uncommon fish)
+    rare: 15,        // 15% chance total (7.5% per rare fish)
+    epic: 7,         // 7% chance total (3.5% per epic fish)
+    legendary: 3,    // 3% chance total (1.5% per legendary fish)
+  }
+  
+  // Select a random fish based on weighted probabilities
+  const selectRandomFish = (): Fish => {
+    // Calculate total weight
+    const totalWeight = Object.values(rarityWeights).reduce((sum, weight) => sum + weight, 0)
+    
+    // Generate random number between 0 and totalWeight
+    let random = Math.random() * totalWeight
+    
+    // Select rarity based on weights
+    let selectedRarity: FishRarity = "common"
+    let cumulativeWeight = 0
+    
+    for (const [rarity, weight] of Object.entries(rarityWeights) as [FishRarity, number][]) {
+      cumulativeWeight += weight
+      if (random <= cumulativeWeight) {
+        selectedRarity = rarity
+        break
+      }
+    }
+    
+    // Filter fish by selected rarity and randomly pick one
+    const fishOfRarity = fishTable.filter(fish => fish.rarity === selectedRarity)
+    return fishOfRarity[Math.floor(Math.random() * fishOfRarity.length)]
+  }
+  
   const [caughtFish, setCaughtFish] = useState<Fish | null>(null)
   const [currentFish, setCurrentFish] = useState<Fish | null>(null) // Fish selected before minigame
   const [fishTransform, setFishTransform] = useState({ flip: 1, rotation: 0 })
@@ -1281,8 +1316,8 @@ export function OceanScene() {
   // Fishing game handler - skill-based timing
   const handleCast = () => {
     if (!isFishing) {
-      // Randomly select a fish before the minigame starts
-      const randomFish = fishTable[Math.floor(Math.random() * fishTable.length)]
+      // Randomly select a fish before the minigame starts using weighted probabilities
+      const randomFish = selectRandomFish()
       setCurrentFish(randomFish)
       
       // Start fishing minigame
