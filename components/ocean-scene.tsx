@@ -1137,16 +1137,44 @@ export function OceanScene() {
     window.addEventListener("resize", handleResize)
     document.addEventListener("mousemove", handleMouseMove)
 
-    const animate = (t: number) => {
-      const time = t * 0.001
-      uniforms.uTime.value = time
-      uniforms.uMousePos.value = mousePosRef.current
-      uniforms.uFlySpeed.value = paramsRef.current.flySpeed
+    // Throttle to 24fps (1000ms / 24fps ≈ 41.67ms per frame)
+    const targetFPS = 24
+    const frameInterval = 1000 / targetFPS
+    let lastFrameTime = 0
+    let isTabVisible = !document.hidden
 
-      renderer.render(scene, camera)
+    const animate = (t: number) => {
+      // Pause animation if tab is not visible
+      if (!isTabVisible) {
+        animationIdRef.current = requestAnimationFrame(animate)
+        return
+      }
+
+      const elapsed = t - lastFrameTime
+      
+      if (elapsed >= frameInterval) {
+        const time = t * 0.001
+        uniforms.uTime.value = time
+        uniforms.uMousePos.value = mousePosRef.current
+        uniforms.uFlySpeed.value = paramsRef.current.flySpeed
+
+        renderer.render(scene, camera)
+        lastFrameTime = t - (elapsed % frameInterval) // Maintain frame timing accuracy
+      }
+      
       animationIdRef.current = requestAnimationFrame(animate)
     }
 
+    // Handle tab visibility changes
+    const handleVisibilityChange = () => {
+      isTabVisible = !document.hidden
+      if (isTabVisible && !animationIdRef.current) {
+        // Resume animation if tab becomes visible and animation was stopped
+        animationIdRef.current = requestAnimationFrame(animate)
+      }
+    }
+
+    document.addEventListener("visibilitychange", handleVisibilityChange)
     animationIdRef.current = requestAnimationFrame(animate)
 
     // Start subtitles
@@ -1156,6 +1184,7 @@ export function OceanScene() {
       cancelAnimationFrame(animationIdRef.current)
       window.removeEventListener("resize", handleResize)
       document.removeEventListener("mousemove", handleMouseMove)
+      document.removeEventListener("visibilitychange", handleVisibilityChange)
       if (subtitleTimeoutRef.current) {
         clearTimeout(subtitleTimeoutRef.current)
       }
