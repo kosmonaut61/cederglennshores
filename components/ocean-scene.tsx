@@ -827,25 +827,36 @@ export function OceanScene() {
   const [markAngle, setMarkAngle] = useState(0)
   const [feedbackState, setFeedbackState] = useState<"success" | "fail" | null>(null)
   const [showFishPopup, setShowFishPopup] = useState(false)
-  const [caughtFishImage, setCaughtFishImage] = useState("/images/fish-catch.png")
+  // Fish data table
+  type FishRarity = "common" | "uncommon" | "rare" | "epic" | "legendary"
+  
+  interface Fish {
+    id: string
+    name: string
+    rarity: FishRarity
+    image: string
+  }
+  
+  const fishTable: Fish[] = [
+    { id: "1", name: "Bass", rarity: "common", image: "/images/fish-catch.png" },
+    { id: "2", name: "Perch", rarity: "common", image: "/images/fish-catch-2.png" },
+    { id: "3", name: "Carp", rarity: "common", image: "/images/fish-catch-3.png" },
+    { id: "4", name: "Pike", rarity: "uncommon", image: "/images/fish-catch-4.png" },
+    { id: "5", name: "Trout", rarity: "uncommon", image: "/images/fish-catch-5.png" },
+    { id: "6", name: "Salmon", rarity: "uncommon", image: "/images/fish-catch-6.png" },
+    { id: "7", name: "Tuna", rarity: "rare", image: "/images/fish-catch-7.png" },
+    { id: "8", name: "Marlin", rarity: "rare", image: "/images/fish-catch-8.png" },
+    { id: "9", name: "Swordfish", rarity: "epic", image: "/images/fish-catch-9.png" },
+    { id: "10", name: "Leviathan", rarity: "epic", image: "/images/fish-catch-10.png" },
+    { id: "11", name: "Kraken", rarity: "legendary", image: "/images/fish-catch-11.png" },
+    { id: "12", name: "Ancient Sea Serpent", rarity: "legendary", image: "/images/fish-catch-12.png" },
+  ]
+  
+  const [caughtFish, setCaughtFish] = useState<Fish | null>(null)
+  const [currentFish, setCurrentFish] = useState<Fish | null>(null) // Fish selected before minigame
   const [fishTransform, setFishTransform] = useState({ flip: 1, rotation: 0 })
   const fishingTimerRef = useRef<number | null>(null)
   const successWindowsRef = useRef<Array<{ start: number; end: number }>>([])
-  
-  const fishImages = [
-    "/images/fish-catch.png",
-    "/images/fish-catch-2.png",
-    "/images/fish-catch-3.png",
-    "/images/fish-catch-4.png",
-    "/images/fish-catch-5.png",
-    "/images/fish-catch-6.png",
-    "/images/fish-catch-7.png",
-    "/images/fish-catch-8.png",
-    "/images/fish-catch-9.png",
-    "/images/fish-catch-10.png",
-    "/images/fish-catch-11.png",
-    "/images/fish-catch-12.png",
-  ]
 
   
   // Net counts (how many of each type owned)
@@ -1252,11 +1263,16 @@ export function OceanScene() {
   // Fishing game handler - skill-based timing
   const handleCast = () => {
     if (!isFishing) {
+      // Randomly select a fish before the minigame starts
+      const randomFish = fishTable[Math.floor(Math.random() * fishTable.length)]
+      setCurrentFish(randomFish)
+      
       // Start fishing minigame
       setIsFishing(true)
       setMarkAngle(0)
       
       // Generate 1-3 random success windows
+      // TODO: Difficulty will be affected by fish rarity in the future
       const numWindows = Math.floor(Math.random() * 3) + 1
       const windows: Array<{ start: number; end: number }> = []
       
@@ -1267,6 +1283,7 @@ export function OceanScene() {
       }
       
       successWindowsRef.current = windows
+      console.log("[v0] Selected fish:", randomFish.name, "Rarity:", randomFish.rarity)
       console.log("[v0] Generated success windows:", windows)
     }
   }
@@ -1300,13 +1317,11 @@ export function OceanScene() {
     
     console.log("[v0] Reel attempt - angle:", currentAngle.toFixed(1), "success:", success)
     
-    if (success) {
+    if (success && currentFish) {
+      // Catch the pre-selected fish
       setFishCaught((prev) => prev + 1)
+      setCaughtFish(currentFish)
       setFeedbackState("success")
-      
-      // Randomly select a fish image
-      const randomFish = fishImages[Math.floor(Math.random() * fishImages.length)]
-      setCaughtFishImage(randomFish)
       
       // Randomly flip and rotate the fish
       const randomFlip = Math.random() > 0.5 ? 1 : -1
@@ -1318,9 +1333,12 @@ export function OceanScene() {
       // Hide fish popup after animation
       setTimeout(() => {
         setShowFishPopup(false)
+        setCaughtFish(null)
       }, 1500)
     } else {
       setFeedbackState("fail")
+      // Clear current fish on failure
+      setCurrentFish(null)
     }
     
     // Reset fishing state
@@ -1470,16 +1488,32 @@ export function OceanScene() {
             animation: "fishPopup 1.5s ease-out forwards",
           }}
         >
-          <img
-            src={caughtFishImage || "/placeholder.svg"}
-            alt="Fish caught!"
-            style={{
-              width: "200px",
-              height: "auto",
-              imageRendering: "pixelated",
-              transform: `scaleX(${fishTransform.flip}) rotate(${fishTransform.rotation}deg)`,
-            }}
-          />
+          {caughtFish && (
+            <>
+              <img
+                src={caughtFish.image || "/placeholder.svg"}
+                alt={caughtFish.name}
+                style={{
+                  width: "200px",
+                  height: "auto",
+                  imageRendering: "pixelated",
+                  transform: `scaleX(${fishTransform.flip}) rotate(${fishTransform.rotation}deg)`,
+                }}
+              />
+              <div
+                style={{
+                  marginTop: "8px",
+                  fontFamily: "PPNeueBit, monospace",
+                  fontSize: "clamp(12px, 1.2vw, 14px)",
+                  color: "rgba(255, 255, 255, 0.9)",
+                  textAlign: "center",
+                  textTransform: "lowercase",
+                }}
+              >
+                {caughtFish.name}
+              </div>
+            </>
+          )}
         </div>
       )}
 
