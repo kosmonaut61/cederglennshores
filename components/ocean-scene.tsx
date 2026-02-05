@@ -825,10 +825,30 @@ export function OceanScene() {
   const [goldPieces, setGoldPieces] = useState(0)
   const [isFishing, setIsFishing] = useState(false)
   const [markAngle, setMarkAngle] = useState(0)
-  const [feedbackState, setFeedbackState] = useState<"success" | "fail" | null>(null)
-  const [showFishPopup, setShowFishPopup] = useState(false)
   // Fish data table
   type FishRarity = "common" | "uncommon" | "rare" | "epic" | "legendary"
+  
+  const [feedbackState, setFeedbackState] = useState<{ type: "success"; rarity: FishRarity } | { type: "fail" } | null>(null)
+  
+  // Get color for rarity-based feedback
+  const getRarityColor = (rarity: FishRarity): string => {
+    switch (rarity) {
+      case "common":
+        return "rgba(156, 163, 175, 0.6)" // Gray
+      case "uncommon":
+        return "rgba(34, 197, 94, 0.6)" // Green
+      case "rare":
+        return "rgba(59, 130, 246, 0.6)" // Blue
+      case "epic":
+        return "rgba(163, 53, 238, 0.6)" // Purple
+      case "legendary":
+        return "rgba(255, 215, 0, 0.6)" // Gold
+      default:
+        return "rgba(255, 255, 255, 0.5)" // White fallback
+    }
+  }
+  
+  const [showFishPopup, setShowFishPopup] = useState(false)
   
   interface Fish {
     id: string
@@ -1321,7 +1341,7 @@ export function OceanScene() {
       // Catch the pre-selected fish
       setFishCaught((prev) => prev + 1)
       setCaughtFish(currentFish)
-      setFeedbackState("success")
+      setFeedbackState({ type: "success", rarity: currentFish.rarity })
       
       // Randomly flip and rotate the fish
       const randomFlip = Math.random() > 0.5 ? 1 : -1
@@ -1336,7 +1356,7 @@ export function OceanScene() {
         setCaughtFish(null)
       }, 1500)
     } else {
-      setFeedbackState("fail")
+      setFeedbackState({ type: "fail" })
       // Clear current fish on failure
       setCurrentFish(null)
     }
@@ -1548,11 +1568,11 @@ export function OceanScene() {
             bottom: 0,
             pointerEvents: "none",
             zIndex: 9999,
-            background: feedbackState === "success"
-              ? "radial-gradient(circle at center, transparent 40%, rgba(255, 255, 255, 0.3) 70%, rgba(255, 255, 255, 0.5) 100%)"
+            background: feedbackState.type === "success"
+              ? `radial-gradient(circle at center, transparent 40%, ${getRarityColor(feedbackState.rarity)} 70%, ${getRarityColor(feedbackState.rarity).replace("0.6", "0.8")} 100%)`
               : "radial-gradient(circle at center, transparent 40%, rgba(255, 50, 50, 0.4) 70%, rgba(255, 50, 50, 0.6) 100%)",
-            animation: feedbackState === "success"
-              ? "flashGreen 0.6s ease-out"
+            animation: feedbackState.type === "success"
+              ? "flashSuccess 0.6s ease-out"
               : "flashRed 0.6s ease-out, shake 0.5s ease-in-out",
           }}
         />
@@ -1584,7 +1604,7 @@ export function OceanScene() {
           20%, 40%, 60%, 80% { transform: translateX(8px); }
         }
         
-        @keyframes flashGreen {
+        @keyframes flashSuccess {
           0% { opacity: 1; }
           100% { opacity: 0; }
         }
