@@ -1147,9 +1147,9 @@ export function OceanScene() {
     const params = paramsRef.current
     
     // Adjust field of view for mobile to show more of the scene
-    // Smaller focal length = wider field of view = shows more of the scene
+    // Larger focal length = wider field of view = shows more of the scene
     // Store focal length multiplier as a uniform so shader can use it
-    const focalLengthMultiplier = isIOS || isMobile ? 0.7 : 1.5 // Zoom out more on mobile (smaller = wider view)
+    const focalLengthMultiplier = isIOS || isMobile ? 3.5 : 1.5 // Zoom out more on mobile (larger = wider view)
     
     const uniforms: Record<string, { value: unknown }> = {
       uTime: { value: 0 },
