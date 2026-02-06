@@ -1123,6 +1123,10 @@ export function OceanScene() {
     uniformsRef.current.uCameraTilt.value = cameraTilt
   }, [])
 
+  // Detect iOS/mobile for performance optimizations
+  const isIOS = typeof window !== "undefined" && /iPad|iPhone|iPod/.test(navigator.userAgent)
+  const isMobile = typeof window !== "undefined" && /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
+  
   // Initialize Three.js
   useEffect(() => {
     if (!canvasRef.current) return
@@ -1132,7 +1136,11 @@ export function OceanScene() {
     const camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1)
     const renderer = new THREE.WebGLRenderer({ canvas, antialias: false })
     renderer.setSize(window.innerWidth, window.innerHeight)
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.0))
+    
+    // Aggressive pixel ratio reduction for iOS/mobile to reduce memory usage
+    // iOS devices often have high pixel ratios (2-3x) which quadruples/noncuples memory usage
+    const maxPixelRatio = isIOS ? 0.5 : isMobile ? 0.75 : 1.0
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, maxPixelRatio))
     rendererRef.current = renderer
 
     const params = paramsRef.current
@@ -1142,9 +1150,9 @@ export function OceanScene() {
       uMousePos: { value: mousePosRef.current },
       uStyle: { value: params.style },
       uEnableGrid: { value: params.enableGrid ? 1.0 : 0.0 },
-      uEnableClouds: { value: params.enableClouds ? 1.0 : 0.0 },
-      uEnableReflections: { value: params.enableReflections ? 1.0 : 0.0 },
-      uEnableFX: { value: params.enableFX ? 1.0 : 0.0 },
+      uEnableClouds: { value: params.enableClouds && !isIOS ? 1.0 : 0.0 }, // Disable clouds on iOS for performance
+      uEnableReflections: { value: params.enableReflections && !isIOS ? 1.0 : 0.0 }, // Disable reflections on iOS
+      uEnableFX: { value: params.enableFX && !isIOS ? 1.0 : 0.0 }, // Disable expensive FX on iOS
       uWaveHeight: { value: params.waveHeight },
       uWaveChoppiness: { value: params.waveChoppiness },
       uSpeed: { value: params.speed },
@@ -1201,8 +1209,8 @@ export function OceanScene() {
     window.addEventListener("resize", handleResize)
     document.addEventListener("mousemove", handleMouseMove)
 
-    // Throttle to 24fps (1000ms / 24fps ≈ 41.67ms per frame)
-    const targetFPS = 24
+    // Throttle to lower FPS on iOS/mobile to reduce CPU/GPU load
+    const targetFPS = isIOS ? 15 : isMobile ? 20 : 24
     const frameInterval = 1000 / targetFPS
     let lastFrameTime = 0
     let isTabVisible = !document.hidden
