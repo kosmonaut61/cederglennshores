@@ -1104,6 +1104,10 @@ export function OceanScene() {
     [updateAllUniforms]
   )
 
+  // Detect iOS/mobile for performance optimizations (must be before callbacks that use it)
+  const isIOS = typeof window !== "undefined" && /iPad|iPhone|iPod/.test(navigator.userAgent)
+  const isMobile = typeof window !== "undefined" && /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
+
   const updateScrollAnimations = useCallback(() => {
     const scrollHeight = document.documentElement.scrollHeight - window.innerHeight
     const progress = Math.min(1, window.scrollY / scrollHeight)
@@ -1111,10 +1115,11 @@ export function OceanScene() {
 
     if (!uniformsRef.current) return
 
-    const cameraStartHeight = 4.0
-    const cameraEndHeight = 1.5
-    const cameraTiltStart = -0.1
-    const cameraTiltEnd = 2.5
+    // Adjust camera for mobile to show more horizon/sky
+    const cameraStartHeight = isIOS || isMobile ? 7.0 : 4.0
+    const cameraEndHeight = isIOS || isMobile ? 3.0 : 1.5
+    const cameraTiltStart = isIOS || isMobile ? 0.8 : -0.1 // Look more upward on mobile to see horizon
+    const cameraTiltEnd = isIOS || isMobile ? 2.8 : 2.5
 
     const easedProgress = progress * progress * (3 - 2 * progress)
     const cameraHeight = cameraStartHeight - (cameraStartHeight - cameraEndHeight) * easedProgress
@@ -1123,10 +1128,6 @@ export function OceanScene() {
     const cameraTilt = cameraTiltStart + (cameraTiltEnd - cameraTiltStart) * easedProgress
     uniformsRef.current.uCameraTilt.value = cameraTilt
   }, [])
-
-  // Detect iOS/mobile for performance optimizations
-  const isIOS = typeof window !== "undefined" && /iPad|iPhone|iPod/.test(navigator.userAgent)
-  const isMobile = typeof window !== "undefined" && /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
   
   // Initialize Three.js
   useEffect(() => {
@@ -1190,8 +1191,8 @@ export function OceanScene() {
       uFlareGhosting: { value: params.flareGhosting },
       uFlareStreak: { value: params.flareStreak },
       uFlareAngle: { value: params.flareAngle },
-      uCameraHeight: { value: 4.0 },
-      uCameraTilt: { value: -0.1 },
+      uCameraHeight: { value: isIOS || isMobile ? 7.0 : 4.0 },
+      uCameraTilt: { value: isIOS || isMobile ? 0.8 : -0.1 }, // Look more upward on mobile to see horizon
     }
 
     uniformsRef.current = uniforms
