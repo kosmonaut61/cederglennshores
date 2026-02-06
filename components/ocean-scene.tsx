@@ -901,21 +901,36 @@ export function OceanScene() {
     name: string
     rarity: FishRarity
     image: string
+    strength: number // Affects tire progress rate (higher = slower progress)
+    resistance: number // Affects swing interval (higher = longer between swings)
+  }
+  
+  // Get fish properties based on rarity
+  // Legendary is baseline (1.0), others scale down
+  const getFishProperties = (rarity: FishRarity): { strength: number; resistance: number } => {
+    const rarityMultipliers: Record<FishRarity, { strength: number; resistance: number }> = {
+      common: { strength: 0.4, resistance: 0.4 },      // Easiest - fast progress, frequent swings
+      uncommon: { strength: 0.55, resistance: 0.55 },  // Easy
+      rare: { strength: 0.7, resistance: 0.7 },         // Medium
+      epic: { strength: 0.85, resistance: 0.85 },       // Hard
+      legendary: { strength: 1.0, resistance: 1.0 },     // Hardest - baseline (current difficulty)
+    }
+    return rarityMultipliers[rarity]
   }
   
   const fishTable: Fish[] = [
-    { id: "1", name: "Brinewhisk Silverfin", rarity: "common", image: "/images/fish-catch.png" },
-    { id: "2", name: "Cobalt Mudsnapper", rarity: "common", image: "/images/fish-catch-2.png" },
-    { id: "3", name: "Lanternscale Darter", rarity: "common", image: "/images/fish-catch-3.png" },
-    { id: "4", name: "Saffron Reefskipper", rarity: "uncommon", image: "/images/fish-catch-4.png" },
-    { id: "5", name: "Tanglejaw Spratling", rarity: "uncommon", image: "/images/fish-catch-5.png" },
-    { id: "6", name: "Velvet Currentgill", rarity: "uncommon", image: "/images/fish-catch-6.png" },
-    { id: "7", name: "Wickerback Driftfish", rarity: "rare", image: "/images/fish-catch-7.png" },
-    { id: "8", name: "Copperline Siltpicker", rarity: "rare", image: "/images/fish-catch-8.png" },
-    { id: "9", name: "Mistwater Spindleperch", rarity: "epic", image: "/images/fish-catch-9.png" },
-    { id: "10", name: "Cragfin Moonrunner", rarity: "epic", image: "/images/fish-catch-10.png" },
-    { id: "11", name: "Thornbelly Shallowskulk", rarity: "legendary", image: "/images/fish-catch-11.png" },
-    { id: "12", name: "Glimmerhook Tidecarp", rarity: "legendary", image: "/images/fish-catch-12.png" },
+    { id: "1", name: "Brinewhisk Silverfin", rarity: "common", image: "/images/fish-catch.png", ...getFishProperties("common") },
+    { id: "2", name: "Cobalt Mudsnapper", rarity: "common", image: "/images/fish-catch-2.png", ...getFishProperties("common") },
+    { id: "3", name: "Lanternscale Darter", rarity: "common", image: "/images/fish-catch-3.png", ...getFishProperties("common") },
+    { id: "4", name: "Saffron Reefskipper", rarity: "uncommon", image: "/images/fish-catch-4.png", ...getFishProperties("uncommon") },
+    { id: "5", name: "Tanglejaw Spratling", rarity: "uncommon", image: "/images/fish-catch-5.png", ...getFishProperties("uncommon") },
+    { id: "6", name: "Velvet Currentgill", rarity: "uncommon", image: "/images/fish-catch-6.png", ...getFishProperties("uncommon") },
+    { id: "7", name: "Wickerback Driftfish", rarity: "rare", image: "/images/fish-catch-7.png", ...getFishProperties("rare") },
+    { id: "8", name: "Copperline Siltpicker", rarity: "rare", image: "/images/fish-catch-8.png", ...getFishProperties("rare") },
+    { id: "9", name: "Mistwater Spindleperch", rarity: "epic", image: "/images/fish-catch-9.png", ...getFishProperties("epic") },
+    { id: "10", name: "Cragfin Moonrunner", rarity: "epic", image: "/images/fish-catch-10.png", ...getFishProperties("epic") },
+    { id: "11", name: "Thornbelly Shallowskulk", rarity: "legendary", image: "/images/fish-catch-11.png", ...getFishProperties("legendary") },
+    { id: "12", name: "Glimmerhook Tidecarp", rarity: "legendary", image: "/images/fish-catch-12.png", ...getFishProperties("legendary") },
   ]
   
   // Weighted probability system for fish rarity
@@ -1447,7 +1462,7 @@ export function OceanScene() {
         setFishPullDirection(0)
         setPlayerSliderPosition(0)
         setTireProgress(0)
-        setBalanceGameTimer(7) // 7 seconds to catch
+        setBalanceGameTimer(10) // 10 seconds to catch
         fishSwingCounterRef.current = 0
       } else if (minigameVersion === 3) {
         // Version 3: Tapping game
@@ -1533,16 +1548,29 @@ export function OceanScene() {
     if (!isFishing || minigameVersion !== 2) return
 
     const gameLoop = setInterval(() => {
+      if (!currentFish) return
+      
+      // Get fish properties
+      const fishStrength = currentFish.strength
+      const fishResistance = currentFish.resistance
+      
+      // Calculate swing interval based on resistance (higher resistance = longer between swings)
+      // Legendary (1.0) = 5 ticks, Common (0.4) = 2 ticks
+      const swingInterval = Math.max(2, Math.round(5 * fishResistance))
+      
       // Fish pull pattern: small jerks, then dramatic swing
       fishSwingCounterRef.current += 1
-      const isSwingTime = fishSwingCounterRef.current % 8 === 0 // Big swing every 8 ticks
+      const isSwingTime = fishSwingCounterRef.current % swingInterval === 0
       
       setFishPullDirection((prev) => {
         let newDirection
         if (isSwingTime) {
           // Dramatic swing - move significantly in a random direction
+          // Swing amount scales with strength (stronger fish swing harder)
           const swingDirection = Math.random() > 0.5 ? 1 : -1
-          const swingAmount = 0.6 + Math.random() * 0.3 // 0.6 to 0.9
+          const baseSwingMin = 0.5
+          const baseSwingMax = 0.75
+          const swingAmount = (baseSwingMin + Math.random() * (baseSwingMax - baseSwingMin)) * fishStrength
           newDirection = prev + (swingDirection * swingAmount)
         } else {
           // Small jerks - subtle movements
@@ -1557,7 +1585,11 @@ export function OceanScene() {
       
       if (isInSafeZone) {
         // Player is counterbalancing - tire the fish
-        setTireProgress((prev) => Math.min(100, prev + 2))
+        // Tire progress scales inversely with strength (stronger fish = slower progress)
+        // Legendary (1.0) = +2 per tick, Common (0.4) = +5 per tick
+        const baseProgress = 2
+        const progressRate = baseProgress / fishStrength
+        setTireProgress((prev) => Math.min(100, prev + progressRate))
       } else {
         // Player not counterbalancing - fish regains energy
         setTireProgress((prev) => Math.max(0, prev - 0.5))
