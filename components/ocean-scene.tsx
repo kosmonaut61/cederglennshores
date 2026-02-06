@@ -815,6 +815,20 @@ export function OceanScene() {
     uniformsRef.current.uFlySpeed.value = debugParams.flySpeed
     paramsRef.current.flySpeed = debugParams.flySpeed
   }, [debugParams])
+  
+  // Apply initial debug params immediately after uniforms are initialized (on iOS/mobile)
+  // This ensures the correct values are set on initial load before scroll animation runs
+  const applyInitialDebugParams = useCallback(() => {
+    if (!uniformsRef.current) return
+    if (!isIOS && !isMobile) return
+    
+    // Apply debug params immediately for iOS/mobile to ensure correct initial state
+    uniformsRef.current.uCameraHeight.value = debugParams.cameraHeight
+    uniformsRef.current.uCameraTilt.value = debugParams.cameraTilt
+    uniformsRef.current.uFocalLength.value = debugParams.focalLength
+    uniformsRef.current.uSunPosY.value = debugParams.sunPosY
+    uniformsRef.current.uSunSize.value = debugParams.sunSize
+  }, [debugParams, isIOS, isMobile])
   const [storyVisible, setStoryVisible] = useState(false)
   const [creditsVisible, setCreditsVisible] = useState(false)
   const [scrollProgress, setScrollProgress] = useState(0)
@@ -1152,19 +1166,41 @@ export function OceanScene() {
     // Don't override debug values when debug modal is open
     if (showDebugModal) return
 
-    // Adjust camera for mobile to show more horizon/sky
-    const cameraStartHeight = isIOS || isMobile ? 7.9 : 4.0
-    const cameraEndHeight = isIOS || isMobile ? 3.0 : 1.5
-    const cameraTiltStart = isIOS || isMobile ? 2.0 : -0.1 // Look more upward on mobile to see horizon
-    const cameraTiltEnd = isIOS || isMobile ? 2.8 : 2.5
+    // On iOS/mobile, use debug params as the base values instead of hardcoded ones
+    if (isIOS || isMobile) {
+      // Use debug params as starting point, only animate if scrolling
+      if (progress > 0) {
+        const cameraStartHeight = debugParams.cameraHeight
+        const cameraEndHeight = 3.0
+        const cameraTiltStart = debugParams.cameraTilt
+        const cameraTiltEnd = 2.8
 
-    const easedProgress = progress * progress * (3 - 2 * progress)
-    const cameraHeight = cameraStartHeight - (cameraStartHeight - cameraEndHeight) * easedProgress
-    uniformsRef.current.uCameraHeight.value = cameraHeight
+        const easedProgress = progress * progress * (3 - 2 * progress)
+        const cameraHeight = cameraStartHeight - (cameraStartHeight - cameraEndHeight) * easedProgress
+        uniformsRef.current.uCameraHeight.value = cameraHeight
 
-    const cameraTilt = cameraTiltStart + (cameraTiltEnd - cameraTiltStart) * easedProgress
-    uniformsRef.current.uCameraTilt.value = cameraTilt
-  }, [showDebugModal])
+        const cameraTilt = cameraTiltStart + (cameraTiltEnd - cameraTiltStart) * easedProgress
+        uniformsRef.current.uCameraTilt.value = cameraTilt
+      } else {
+        // At scroll position 0, use debug params directly
+        uniformsRef.current.uCameraHeight.value = debugParams.cameraHeight
+        uniformsRef.current.uCameraTilt.value = debugParams.cameraTilt
+      }
+    } else {
+      // Desktop: use original logic
+      const cameraStartHeight = 4.0
+      const cameraEndHeight = 1.5
+      const cameraTiltStart = -0.1
+      const cameraTiltEnd = 2.5
+
+      const easedProgress = progress * progress * (3 - 2 * progress)
+      const cameraHeight = cameraStartHeight - (cameraStartHeight - cameraEndHeight) * easedProgress
+      uniformsRef.current.uCameraHeight.value = cameraHeight
+
+      const cameraTilt = cameraTiltStart + (cameraTiltEnd - cameraTiltStart) * easedProgress
+      uniformsRef.current.uCameraTilt.value = cameraTilt
+    }
+  }, [showDebugModal, debugParams, isIOS, isMobile])
   
   // Initialize Three.js
   useEffect(() => {
@@ -1233,6 +1269,16 @@ export function OceanScene() {
     }
 
     uniformsRef.current = uniforms
+    
+    // Apply debug params immediately after uniforms are set (iOS/mobile)
+    // This ensures the correct values are used from the start
+    if (isIOS || isMobile) {
+      uniformsRef.current.uCameraHeight.value = debugParams.cameraHeight
+      uniformsRef.current.uCameraTilt.value = debugParams.cameraTilt
+      uniformsRef.current.uFocalLength.value = debugParams.focalLength
+      uniformsRef.current.uSunPosY.value = debugParams.sunPosY
+      uniformsRef.current.uSunSize.value = debugParams.sunSize
+    }
 
     const material = new THREE.ShaderMaterial({
       vertexShader,
@@ -1313,9 +1359,14 @@ export function OceanScene() {
   // Scroll handler
   useEffect(() => {
     window.addEventListener("scroll", updateScrollAnimations, { passive: true })
-    updateScrollAnimations()
+    // Delay initial call slightly to ensure debug params are applied first on iOS/mobile
+    if (isIOS || isMobile) {
+      setTimeout(() => updateScrollAnimations(), 100)
+    } else {
+      updateScrollAnimations()
+    }
     return () => window.removeEventListener("scroll", updateScrollAnimations)
-  }, [updateScrollAnimations])
+  }, [updateScrollAnimations, isIOS, isMobile])
 
   // Keyboard shortcuts
   useEffect(() => {
