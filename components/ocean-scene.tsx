@@ -785,12 +785,12 @@ export function OceanScene() {
   
   // Debug state for real-time parameter adjustment
   const [debugParams, setDebugParams] = useState({
-    cameraHeight: isIOS || isMobile ? 7.9 : 4.0,
-    cameraTilt: isIOS || isMobile ? 2.0 : -0.1,
-    focalLength: isIOS || isMobile ? 2.0 : 1.5,
+    cameraHeight: 4.0,
+    cameraTilt: -0.1,
+    focalLength: 1.5,
     sunPosX: 0.0,
-    sunPosY: isIOS || isMobile ? -0.13 : 0.3,
-    sunSize: isIOS || isMobile ? 0.6 : 0.9,
+    sunPosY: 0.3,
+    sunSize: 0.9,
     sunIntensity: 3.0,
     waveHeight: 0.2,
     waveChoppiness: 2.5,
@@ -1166,41 +1166,19 @@ export function OceanScene() {
     // Don't override debug values when debug modal is open
     if (showDebugModal) return
 
-    // On iOS/mobile, use debug params as the base values instead of hardcoded ones
-    if (isIOS || isMobile) {
-      // Use debug params as starting point, only animate if scrolling
-      if (progress > 0) {
-        const cameraStartHeight = debugParams.cameraHeight
-        const cameraEndHeight = 3.0
-        const cameraTiltStart = debugParams.cameraTilt
-        const cameraTiltEnd = 2.8
+    // Use same camera animation logic for all devices
+    const cameraStartHeight = 4.0
+    const cameraEndHeight = 1.5
+    const cameraTiltStart = -0.1
+    const cameraTiltEnd = 2.5
 
-        const easedProgress = progress * progress * (3 - 2 * progress)
-        const cameraHeight = cameraStartHeight - (cameraStartHeight - cameraEndHeight) * easedProgress
-        uniformsRef.current.uCameraHeight.value = cameraHeight
+    const easedProgress = progress * progress * (3 - 2 * progress)
+    const cameraHeight = cameraStartHeight - (cameraStartHeight - cameraEndHeight) * easedProgress
+    uniformsRef.current.uCameraHeight.value = cameraHeight
 
-        const cameraTilt = cameraTiltStart + (cameraTiltEnd - cameraTiltStart) * easedProgress
-        uniformsRef.current.uCameraTilt.value = cameraTilt
-      } else {
-        // At scroll position 0, use debug params directly
-        uniformsRef.current.uCameraHeight.value = debugParams.cameraHeight
-        uniformsRef.current.uCameraTilt.value = debugParams.cameraTilt
-      }
-    } else {
-      // Desktop: use original logic
-      const cameraStartHeight = 4.0
-      const cameraEndHeight = 1.5
-      const cameraTiltStart = -0.1
-      const cameraTiltEnd = 2.5
-
-      const easedProgress = progress * progress * (3 - 2 * progress)
-      const cameraHeight = cameraStartHeight - (cameraStartHeight - cameraEndHeight) * easedProgress
-      uniformsRef.current.uCameraHeight.value = cameraHeight
-
-      const cameraTilt = cameraTiltStart + (cameraTiltEnd - cameraTiltStart) * easedProgress
-      uniformsRef.current.uCameraTilt.value = cameraTilt
-    }
-  }, [showDebugModal, debugParams, isIOS, isMobile])
+    const cameraTilt = cameraTiltStart + (cameraTiltEnd - cameraTiltStart) * easedProgress
+    uniformsRef.current.uCameraTilt.value = cameraTilt
+  }, [showDebugModal])
   
   // Initialize Three.js
   useEffect(() => {
@@ -1223,7 +1201,7 @@ export function OceanScene() {
     // Adjust field of view for mobile to show more of the scene
     // Larger focal length = wider field of view = shows more of the scene
     // Store focal length multiplier as a uniform so shader can use it
-    const focalLengthMultiplier = isIOS || isMobile ? 2.0 : 1.5 // Zoom out more on mobile (larger = wider view)
+    const focalLengthMultiplier = 1.5 // Use same as desktop
     
     const uniforms: Record<string, { value: unknown }> = {
       uTime: { value: 0 },
@@ -1231,9 +1209,9 @@ export function OceanScene() {
       uMousePos: { value: mousePosRef.current },
       uStyle: { value: params.style },
       uEnableGrid: { value: params.enableGrid ? 1.0 : 0.0 },
-      uEnableClouds: { value: params.enableClouds && !isIOS ? 1.0 : 0.0 }, // Disable clouds on iOS for performance
-      uEnableReflections: { value: params.enableReflections && !isIOS ? 1.0 : 0.0 }, // Disable reflections on iOS
-      uEnableFX: { value: params.enableFX && !isIOS ? 1.0 : 0.0 }, // Disable expensive FX on iOS
+      uEnableClouds: { value: params.enableClouds ? 1.0 : 0.0 },
+      uEnableReflections: { value: params.enableReflections ? 1.0 : 0.0 },
+      uEnableFX: { value: params.enableFX ? 1.0 : 0.0 },
       uFocalLength: { value: focalLengthMultiplier }, // Add focal length as uniform
       uWaveHeight: { value: params.waveHeight },
       uWaveChoppiness: { value: params.waveChoppiness },
@@ -1242,10 +1220,10 @@ export function OceanScene() {
       uSssStrength: { value: params.sssStrength },
       uSssBaseColor: { value: new THREE.Color(params.sssBaseColor) },
       uSssTipColor: { value: new THREE.Color(params.sssTipColor) },
-      uSunSize: { value: isIOS || isMobile ? 0.6 : params.sunSize },
+      uSunSize: { value: params.sunSize },
       uSunIntensity: { value: params.sunIntensity },
       uSunPosX: { value: params.sunPosX },
-      uSunPosY: { value: isIOS || isMobile ? -0.13 : params.sunPosY },
+      uSunPosY: { value: params.sunPosY },
       uReflectionStrength: { value: params.reflectionStrength },
       uReflectionWidth: { value: params.reflectionWidth },
       uCloudDensity: { value: params.cloudDensity },
@@ -1264,21 +1242,11 @@ export function OceanScene() {
       uFlareGhosting: { value: params.flareGhosting },
       uFlareStreak: { value: params.flareStreak },
       uFlareAngle: { value: params.flareAngle },
-      uCameraHeight: { value: isIOS || isMobile ? 7.9 : 4.0 },
-      uCameraTilt: { value: isIOS || isMobile ? 2.0 : -0.1 }, // Look more upward on mobile to see horizon
+      uCameraHeight: { value: 4.0 },
+      uCameraTilt: { value: -0.1 },
     }
 
     uniformsRef.current = uniforms
-    
-    // Apply debug params immediately after uniforms are set (iOS/mobile)
-    // This ensures the correct values are used from the start
-    if (isIOS || isMobile) {
-      uniformsRef.current.uCameraHeight.value = debugParams.cameraHeight
-      uniformsRef.current.uCameraTilt.value = debugParams.cameraTilt
-      uniformsRef.current.uFocalLength.value = debugParams.focalLength
-      uniformsRef.current.uSunPosY.value = debugParams.sunPosY
-      uniformsRef.current.uSunSize.value = debugParams.sunSize
-    }
 
     const material = new THREE.ShaderMaterial({
       vertexShader,
@@ -1359,14 +1327,9 @@ export function OceanScene() {
   // Scroll handler
   useEffect(() => {
     window.addEventListener("scroll", updateScrollAnimations, { passive: true })
-    // Delay initial call slightly to ensure debug params are applied first on iOS/mobile
-    if (isIOS || isMobile) {
-      setTimeout(() => updateScrollAnimations(), 100)
-    } else {
-      updateScrollAnimations()
-    }
+    updateScrollAnimations()
     return () => window.removeEventListener("scroll", updateScrollAnimations)
-  }, [updateScrollAnimations, isIOS, isMobile])
+  }, [updateScrollAnimations])
 
   // Keyboard shortcuts
   useEffect(() => {
