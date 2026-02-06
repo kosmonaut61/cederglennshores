@@ -1575,7 +1575,9 @@ export function OceanScene() {
           targetDirection = prev + (swingDirection * swingAmount)
         } else {
           // Small jerks - subtle movements
-          targetDirection = prev + (Math.random() - 0.5) * 0.15
+          // Make easier fish move more to require active counterbalancing
+          const jerkAmount = 0.15 + (1.0 - fishStrength) * 0.1 // Easier fish jerk more
+          targetDirection = prev + (Math.random() - 0.5) * jerkAmount
         }
         
         // Apply easing/smoothing to make movement less jarring
@@ -1593,13 +1595,17 @@ export function OceanScene() {
       if (isInSafeZone) {
         // Player is counterbalancing - tire the fish
         // Tire progress scales inversely with strength (stronger fish = slower progress)
-        // Legendary (1.0) = +2 per tick, Common (0.4) = +5 per tick
+        // But we cap the maximum progress rate to prevent easy fish from being too easy
+        // Legendary (1.0) = +2 per tick, Common (0.4) = +3.5 per tick (capped from +5)
         const baseProgress = 2
-        const progressRate = baseProgress / fishStrength
+        const maxProgressRate = 3.5 // Cap to prevent auto-catching
+        const progressRate = Math.min(maxProgressRate, baseProgress / fishStrength)
         setTireProgress((prev) => Math.min(100, prev + progressRate))
       } else {
         // Player not counterbalancing - fish regains energy
-        setTireProgress((prev) => Math.max(0, prev - 0.5))
+        // Make fish regain energy faster for easier fish to require active play
+        const regenRate = 0.5 + (1.0 - fishStrength) * 0.3 // Easier fish lose progress faster
+        setTireProgress((prev) => Math.max(0, prev - regenRate))
       }
 
       // Update timer - only count down when OUTSIDE safe zone
