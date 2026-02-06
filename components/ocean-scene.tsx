@@ -820,6 +820,7 @@ export function OceanScene() {
   // Splash screen and audio state
   const [showSplash, setShowSplash] = useState(true)
   const [musicEnabled, setMusicEnabled] = useState(true)
+  const [minigameVersion, setMinigameVersion] = useState<1 | 2 | 3>(1)
   const audioRef = useRef<HTMLAudioElement | null>(null)
   
   // Initialize audio element
@@ -1332,11 +1333,27 @@ export function OceanScene() {
         setCreditsVisible(false)
         subtitlesPausedRef.current = false
       }
+      
+      // Version 2: Arrow keys for balancing
+      if (isFishing && minigameVersion === 2) {
+        if (e.key === "ArrowLeft") {
+          e.preventDefault()
+          handleBalanceSlider(-0.1)
+        } else if (e.key === "ArrowRight") {
+          e.preventDefault()
+          handleBalanceSlider(0.1)
+        }
+      }
+      // Version 3: Spacebar for tapping
+      if (isFishing && minigameVersion === 3 && e.key === " ") {
+        e.preventDefault()
+        handleTap()
+      }
     }
 
     document.addEventListener("keydown", handleKeyDown)
     return () => document.removeEventListener("keydown", handleKeyDown)
-  }, [])
+  }, [isFishing, minigameVersion, handleBalanceSlider, handleTap])
 
   // Handle style change
   useEffect(() => {
@@ -1372,100 +1389,113 @@ export function OceanScene() {
     }
   }
 
-  // Fishing game handler - skill-based timing
+  // Fishing game handler - routes to version-specific handlers
   const handleCast = () => {
     if (!isFishing) {
       // Randomly select a fish before the minigame starts using weighted probabilities
       const randomFish = selectRandomFish()
       setCurrentFish(randomFish)
       
-      // Start fishing minigame
+      // Start fishing minigame based on version
       setIsFishing(true)
-      setMarkAngle(0)
       
-      // Generate 1-3 random success windows
-      // TODO: Difficulty will be affected by fish rarity in the future
-      const numWindows = Math.floor(Math.random() * 3) + 1
-      const windows: Array<{ start: number; end: number }> = []
-      
-      for (let i = 0; i < numWindows; i++) {
-        const start = Math.random() * 360
-        const width = 20 + Math.random() * 30 // 20-50 degree windows
-        windows.push({ start, end: (start + width) % 360 })
+      if (minigameVersion === 1) {
+        // Version 1: Timing game
+        setMarkAngle(0)
+        const numWindows = Math.floor(Math.random() * 3) + 1
+        const windows: Array<{ start: number; end: number }> = []
+        for (let i = 0; i < numWindows; i++) {
+          const start = Math.random() * 360
+          const width = 20 + Math.random() * 30
+          windows.push({ start, end: (start + width) % 360 })
+        }
+        successWindowsRef.current = windows
+      } else if (minigameVersion === 2) {
+        // Version 2: Balancing game
+        setFishPullDirection(0)
+        setPlayerSliderPosition(0)
+        setTireProgress(0)
+        setBalanceGameTimer(15) // 15 seconds to catch
+      } else if (minigameVersion === 3) {
+        // Version 3: Tapping game
+        setLineTension(0)
+        setCatchProgress(0)
+        setTapCooldown(0)
       }
-      
-      successWindowsRef.current = windows
-      console.log("[v0] Selected fish:", randomFish.name, "Rarity:", randomFish.rarity)
-      console.log("[v0] Generated success windows:", windows)
     }
   }
 
-  const handleReel = () => {
+  // Version 1: Timing game handler
+  const handleReelV1 = () => {
     if (!isFishing) return
     
-    // Check if mark is within any success window with tolerance
     const currentAngle = markAngle % 360
-    const tolerance = 5 // 5 degree tolerance for better feel
-    
-    console.log("[v0] Checking angle:", currentAngle.toFixed(1), "against windows:", successWindowsRef.current)
+    const tolerance = 5
     
     const success = successWindowsRef.current.some(window => {
-      // Normalize angles
       const start = window.start % 360
       const end = window.end % 360
-      
-      // Add tolerance to the window
       const expandedStart = (start - tolerance + 360) % 360
       const expandedEnd = (end + tolerance) % 360
       
       if (expandedEnd > expandedStart) {
-        // Normal case: window doesn't cross 0
         return currentAngle >= expandedStart && currentAngle <= expandedEnd
       } else {
-        // Wrap-around case: window crosses 0 degrees
         return currentAngle >= expandedStart || currentAngle <= expandedEnd
       }
     })
     
-    console.log("[v0] Reel attempt - angle:", currentAngle.toFixed(1), "success:", success)
-    
     if (success && currentFish) {
-      // Catch the pre-selected fish
       setFishCaught((prev) => prev + 1)
       setCaughtFish(currentFish)
       setFeedbackState({ type: "success", rarity: currentFish.rarity })
-      
-      // Randomly flip and rotate the fish
       const randomFlip = Math.random() > 0.5 ? 1 : -1
-      const randomRotation = (Math.random() * 5 + 5) * (Math.random() > 0.5 ? 1 : -1) // 5-10 degrees, either direction
+      const randomRotation = (Math.random() * 5 + 5) * (Math.random() > 0.5 ? 1 : -1)
       setFishTransform({ flip: randomFlip, rotation: randomRotation })
-      
       setShowFishPopup(true)
-      
-      // Hide fish popup after animation
       setTimeout(() => {
         setShowFishPopup(false)
         setCaughtFish(null)
       }, 1500)
     } else {
       setFeedbackState({ type: "fail" })
-      // Clear current fish on failure
       setCurrentFish(null)
     }
     
-    // Reset fishing state
     setIsFishing(false)
     setMarkAngle(0)
-    
-    // Clear feedback after animation
     setTimeout(() => {
       setFeedbackState(null)
     }, 600)
   }
 
-  // Animate the fishing timer mark
+  // Version 2: Balancing game - handle slider movement
+  const handleBalanceSlider = useCallback((delta: number) => {
+    if (!isFishing || minigameVersion !== 2) return
+    setPlayerSliderPosition((prev) => Math.max(-1, Math.min(1, prev + delta)))
+  }, [isFishing, minigameVersion])
+
+  // Version 3: Tapping game - handle tap
+  const handleTap = useCallback(() => {
+    if (!isFishing || minigameVersion !== 3 || tapCooldown > 0) return
+    
+    // Reduce line tension and increase catch progress
+    setLineTension((prev) => Math.max(0, prev - 15))
+    setCatchProgress((prev) => Math.min(100, prev + 2))
+    setTapCooldown(100) // 100ms cooldown
+  }, [isFishing, minigameVersion, tapCooldown])
+
+  // Main reel handler routes to version-specific handlers
+  const handleReel = () => {
+    if (minigameVersion === 1) {
+      handleReelV1()
+    }
+    // Version 2 and 3 don't use the reel button - they have their own controls
+  }
+
+  // Animate the fishing timer mark (Version 1 only)
   useEffect(() => {
-    if (!isFishing) return
+    if (!isFishing || minigameVersion !== 1) return
     
     let animationFrameId: number
     const animate = () => {
@@ -1476,7 +1506,119 @@ export function OceanScene() {
     animationFrameId = requestAnimationFrame(animate)
     
     return () => cancelAnimationFrame(animationFrameId)
-  }, [isFishing])
+  }, [isFishing, minigameVersion])
+
+  // Version 2: Balancing game loop
+  useEffect(() => {
+    if (!isFishing || minigameVersion !== 2) return
+
+    const gameLoop = setInterval(() => {
+      // Fish pulls randomly left or right
+      setFishPullDirection((prev) => {
+        const newDirection = prev + (Math.random() - 0.5) * 0.3
+        return Math.max(-1, Math.min(1, newDirection))
+      })
+
+      // Check if player is counterbalancing (within 30 degrees = 0.5 units)
+      const balanceDiff = Math.abs(fishPullDirection - playerSliderPosition)
+      if (balanceDiff < 0.5) {
+        // Player is counterbalancing - tire the fish
+        setTireProgress((prev) => Math.min(100, prev + 2))
+      } else {
+        // Player not counterbalancing - fish regains energy
+        setTireProgress((prev) => Math.max(0, prev - 0.5))
+      }
+
+      // Update timer
+      setBalanceGameTimer((prev) => {
+        if (prev <= 0) {
+          // Time's up - fish escapes
+          setFeedbackState({ type: "fail" })
+          setCurrentFish(null)
+          setIsFishing(false)
+          setTireProgress(0)
+          setFishPullDirection(0)
+          setPlayerSliderPosition(0)
+          setTimeout(() => {
+            setFeedbackState(null)
+          }, 600)
+          return 0
+        }
+        return prev - 0.1
+      })
+
+      // Check for success
+      if (tireProgress >= 100 && currentFish) {
+        setFishCaught((prev) => prev + 1)
+        setCaughtFish(currentFish)
+        setFeedbackState({ type: "success", rarity: currentFish.rarity })
+        const randomFlip = Math.random() > 0.5 ? 1 : -1
+        const randomRotation = (Math.random() * 5 + 5) * (Math.random() > 0.5 ? 1 : -1)
+        setFishTransform({ flip: randomFlip, rotation: randomRotation })
+        setShowFishPopup(true)
+        setTimeout(() => {
+          setShowFishPopup(false)
+          setCaughtFish(null)
+        }, 1500)
+        setIsFishing(false)
+        setTireProgress(0)
+        setFishPullDirection(0)
+        setPlayerSliderPosition(0)
+      }
+    }, 50) // Update every 50ms
+
+    return () => clearInterval(gameLoop)
+  }, [isFishing, minigameVersion, fishPullDirection, playerSliderPosition, tireProgress, currentFish])
+
+  // Version 3: Tapping game loop
+  useEffect(() => {
+    if (!isFishing || minigameVersion !== 3) return
+
+    const gameLoop = setInterval(() => {
+      // Line tension increases over time (fish trying to escape)
+      setLineTension((prev) => {
+        const newTension = Math.min(100, prev + 0.8)
+        if (newTension >= 100) {
+          // Line snapped
+          setFeedbackState({ type: "fail" })
+          setCurrentFish(null)
+          setIsFishing(false)
+          setLineTension(0)
+          setCatchProgress(0)
+          setTimeout(() => {
+            setFeedbackState(null)
+          }, 600)
+        }
+        return newTension
+      })
+
+      // Catch progress decreases if not tapping (fish escaping)
+      setCatchProgress((prev) => Math.max(0, prev - 0.3))
+
+      // Update tap cooldown
+      setTapCooldown((prev) => Math.max(0, prev - 5))
+
+      // Check for success
+      if (catchProgress >= 100 && currentFish) {
+        setFishCaught((prev) => prev + 1)
+        setCaughtFish(currentFish)
+        setFeedbackState({ type: "success", rarity: currentFish.rarity })
+        const randomFlip = Math.random() > 0.5 ? 1 : -1
+        const randomRotation = (Math.random() * 5 + 5) * (Math.random() > 0.5 ? 1 : -1)
+        setFishTransform({ flip: randomFlip, rotation: randomRotation })
+        setShowFishPopup(true)
+        setTimeout(() => {
+          setShowFishPopup(false)
+          setCaughtFish(null)
+        }, 1500)
+        setIsFishing(false)
+        setLineTension(0)
+        setCatchProgress(0)
+      }
+    }, 50) // Update every 50ms
+
+    return () => clearInterval(gameLoop)
+  }, [isFishing, minigameVersion, lineTension, catchProgress, currentFish])
 
   // Sell all fish for GP
   const handleSellFish = () => {
@@ -1764,6 +1906,48 @@ export function OceanScene() {
             />
             background music
           </label>
+
+          {/* Minigame Version Selector */}
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              gap: "8px",
+            }}
+          >
+            <label
+              style={{
+                fontFamily: "PPNeueBit, monospace",
+                fontSize: "clamp(14px, 1.5vw, 18px)",
+                color: "rgba(255, 255, 255, 0.7)",
+                letterSpacing: "0.05em",
+                textTransform: "lowercase",
+              }}
+            >
+              minigame version
+            </label>
+            <select
+              value={minigameVersion}
+              onChange={(e) => setMinigameVersion(Number(e.target.value) as 1 | 2 | 3)}
+              style={{
+                fontFamily: "PPNeueBit, monospace",
+                fontSize: "clamp(14px, 1.5vw, 18px)",
+                padding: "8px 16px",
+                backgroundColor: "rgba(255, 255, 255, 0.1)",
+                color: "rgba(255, 255, 255, 0.9)",
+                border: "2px solid rgba(255, 255, 255, 0.3)",
+                borderRadius: "4px",
+                cursor: "pointer",
+                letterSpacing: "0.05em",
+                textTransform: "lowercase",
+              }}
+            >
+              <option value={1}>Version 1 - Timing</option>
+              <option value={2}>Version 2 - Balancing</option>
+              <option value={3}>Version 3 - Tapping</option>
+            </select>
+          </div>
 
           {/* Play Button */}
           <button
@@ -2142,8 +2326,8 @@ export function OceanScene() {
         </div>
       </div>
 
-      {/* Fishing Timer - circular indicator */}
-      {isFishing && (
+      {/* Version 1: Fishing Timer - circular indicator */}
+      {isFishing && minigameVersion === 1 && (
         <div
           style={{
             position: "fixed",
@@ -2163,25 +2347,18 @@ export function OceanScene() {
 
             {/* Success windows (green segments) */}
             {successWindowsRef.current.map((window, i) => {
-              // Convert degrees to radians, adjusting for SVG coordinate system (0° = top, clockwise)
               const startRad = ((window.start - 90) * Math.PI) / 180
               const endRad = ((window.end - 90) * Math.PI) / 180
               const outerRadius = 80
               const innerRadius = 60
-
-              // Calculate outer arc points
               const x1Outer = 80 + Math.cos(startRad) * outerRadius
               const y1Outer = 80 + Math.sin(startRad) * outerRadius
               const x2Outer = 80 + Math.cos(endRad) * outerRadius
               const y2Outer = 80 + Math.sin(endRad) * outerRadius
-
-              // Calculate inner arc points (in reverse order for proper path)
               const x1Inner = 80 + Math.cos(endRad) * innerRadius
               const y1Inner = 80 + Math.sin(endRad) * innerRadius
               const x2Inner = 80 + Math.cos(startRad) * innerRadius
               const y2Inner = 80 + Math.sin(startRad) * innerRadius
-
-              // Determine if arc is > 180 degrees
               const largeArcFlag = (window.end - window.start + 360) % 360 > 180 ? 1 : 0
 
               return (
@@ -2200,7 +2377,7 @@ export function OceanScene() {
               )
             })}
 
-            {/* Rotating mark - calculate endpoint based on angle */}
+            {/* Rotating mark */}
             <line
               x1="80"
               y1="80"
@@ -2216,32 +2393,332 @@ export function OceanScene() {
               r="6"
               fill="rgba(255, 255, 255, 0.95)"
             />
-
-            {/* Ring outline */}
             <circle cx="80" cy="80" r="80" fill="none" stroke="rgba(255, 255, 255, 0.3)" strokeWidth="2" />
             <circle cx="80" cy="80" r="60" fill="none" stroke="rgba(255, 255, 255, 0.3)" strokeWidth="2" />
           </svg>
         </div>
       )}
 
-      {/* Cast/Reel Button */}
-      <button
-        onClick={isFishing ? handleReel : handleCast}
-        className="pixel-button"
-        style={{
-          position: "fixed",
-          bottom: "48px",
-          left: "50%",
-          transform: "translateX(-50%)",
-          fontSize: "clamp(12px, 1.2vw, 14px)",
-          height: "2.5rem",
-          lineHeight: "2.5rem",
-          padding: "0 1.5rem",
-          zIndex: 100,
-        }}
-      >
-        {isFishing ? "reel" : "cast"}
-      </button>
+      {/* Version 2: Balancing Game */}
+      {isFishing && minigameVersion === 2 && (
+        <div
+          style={{
+            position: "fixed",
+            bottom: "120px",
+            left: "50%",
+            transform: "translateX(-50%)",
+            zIndex: 200,
+            width: "300px",
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            gap: "20px",
+          }}
+        >
+          {/* Timer */}
+          <div
+            style={{
+              fontFamily: "PPNeueBit, monospace",
+              fontSize: "18px",
+              color: "rgba(255, 255, 255, 0.9)",
+              textAlign: "center",
+            }}
+          >
+            Time: {Math.ceil(balanceGameTimer)}s
+          </div>
+
+          {/* Arced Slider */}
+          <svg width="300" height="120" viewBox="0 0 300 120">
+            {/* Arc background */}
+            <path
+              d="M 50 100 A 100 100 0 0 1 250 100"
+              fill="none"
+              stroke="rgba(255, 255, 255, 0.3)"
+              strokeWidth="4"
+            />
+            
+            {/* Calculate positions on arc */}
+            {(() => {
+              // Convert -1 to 1 range to 0 to π (semicircle from left to right)
+              const fishAngle = (fishPullDirection + 1) * (Math.PI / 2) // Maps -1 to 0, 0 to π/2, 1 to π
+              const playerAngle = (playerSliderPosition + 1) * (Math.PI / 2)
+              const radius = 100
+              const centerX = 150
+              const centerY = 100
+              
+              // Calculate positions on semicircle (top arc)
+              const fishX = centerX + Math.cos(fishAngle) * radius
+              const fishY = centerY - Math.sin(fishAngle) * radius
+              const playerX = centerX + Math.cos(playerAngle) * radius
+              const playerY = centerY - Math.sin(playerAngle) * radius
+              
+              // Balance zone (30 degrees = π/6 radians tolerance)
+              const tolerance = Math.PI / 6
+              const balanceZoneStart = fishAngle - tolerance
+              const balanceZoneEnd = fishAngle + tolerance
+              const zoneX1 = centerX + Math.cos(balanceZoneStart) * radius
+              const zoneY1 = centerY - Math.sin(balanceZoneStart) * radius
+              const zoneX2 = centerX + Math.cos(balanceZoneEnd) * radius
+              const zoneY2 = centerY - Math.sin(balanceZoneEnd) * radius
+              
+              return (
+                <>
+                  {/* Balance zone indicator (green arc segment) */}
+                  <path
+                    d={`M ${centerX} ${centerY} L ${zoneX1} ${zoneY1} A ${radius} ${radius} 0 0 1 ${zoneX2} ${zoneY2} Z`}
+                    fill="rgba(100, 255, 100, 0.3)"
+                  />
+                  
+                  {/* Fish pull indicator (red) */}
+                  <circle
+                    cx={fishX}
+                    cy={fishY}
+                    r="10"
+                    fill="rgba(255, 100, 100, 0.9)"
+                  />
+                  
+                  {/* Player slider position (white) */}
+                  <circle
+                    cx={playerX}
+                    cy={playerY}
+                    r="10"
+                    fill="rgba(255, 255, 255, 0.9)"
+                  />
+                  
+                  {/* Line from center to fish */}
+                  <line
+                    x1={centerX}
+                    y1={centerY}
+                    x2={fishX}
+                    y2={fishY}
+                    stroke="rgba(255, 100, 100, 0.5)"
+                    strokeWidth="2"
+                  />
+                  
+                  {/* Line from center to player */}
+                  <line
+                    x1={centerX}
+                    y1={centerY}
+                    x2={playerX}
+                    y2={playerY}
+                    stroke="rgba(255, 255, 255, 0.5)"
+                    strokeWidth="2"
+                  />
+                </>
+              )
+            })()}
+          </svg>
+
+          {/* Slider Controls */}
+          <div style={{ display: "flex", gap: "10px" }}>
+            <button
+              onClick={() => handleBalanceSlider(-0.1)}
+              className="pixel-button"
+              style={{ fontSize: "14px", padding: "8px 16px" }}
+            >
+              ←
+            </button>
+            <button
+              onClick={() => handleBalanceSlider(0.1)}
+              className="pixel-button"
+              style={{ fontSize: "14px", padding: "8px 16px" }}
+            >
+              →
+            </button>
+          </div>
+
+          {/* Tire Progress */}
+          <div style={{ width: "100%", textAlign: "center" }}>
+            <div
+              style={{
+                fontFamily: "PPNeueBit, monospace",
+                fontSize: "14px",
+                color: "rgba(255, 255, 255, 0.7)",
+                marginBottom: "8px",
+              }}
+            >
+              Tire Progress: {Math.round(tireProgress)}%
+            </div>
+            <div
+              style={{
+                width: "100%",
+                height: "20px",
+                backgroundColor: "rgba(255, 255, 255, 0.2)",
+                border: "2px solid rgba(255, 255, 255, 0.3)",
+                borderRadius: "4px",
+                overflow: "hidden",
+              }}
+            >
+              <div
+                style={{
+                  width: `${tireProgress}%`,
+                  height: "100%",
+                  backgroundColor: "rgba(100, 255, 100, 0.8)",
+                  transition: "width 0.1s linear",
+                }}
+              />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Version 3: Tapping Game */}
+      {isFishing && minigameVersion === 3 && (
+        <div
+          style={{
+            position: "fixed",
+            bottom: "120px",
+            left: "50%",
+            transform: "translateX(-50%)",
+            zIndex: 200,
+            width: "300px",
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            gap: "20px",
+          }}
+        >
+          {/* Line Tension Bar */}
+          <div style={{ width: "100%", textAlign: "center" }}>
+            <div
+              style={{
+                fontFamily: "PPNeueBit, monospace",
+                fontSize: "14px",
+                color: "rgba(255, 255, 255, 0.7)",
+                marginBottom: "8px",
+              }}
+            >
+              Line Tension: {Math.round(lineTension)}%
+            </div>
+            <div
+              style={{
+                width: "100%",
+                height: "30px",
+                backgroundColor: "rgba(255, 255, 255, 0.2)",
+                border: "2px solid rgba(255, 255, 255, 0.3)",
+                borderRadius: "4px",
+                overflow: "hidden",
+                position: "relative",
+              }}
+            >
+              <div
+                style={{
+                  width: `${lineTension}%`,
+                  height: "100%",
+                  backgroundColor: lineTension > 80 ? "rgba(255, 100, 100, 0.9)" : "rgba(255, 200, 100, 0.8)",
+                  transition: "width 0.1s linear, background-color 0.2s",
+                }}
+              />
+              {lineTension >= 100 && (
+                <div
+                  style={{
+                    position: "absolute",
+                    top: "50%",
+                    left: "50%",
+                    transform: "translate(-50%, -50%)",
+                    fontFamily: "PPNeueBit, monospace",
+                    fontSize: "16px",
+                    color: "rgba(255, 255, 255, 1)",
+                    fontWeight: "bold",
+                  }}
+                >
+                  SNAPPED!
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Catch Progress Bar */}
+          <div style={{ width: "100%", textAlign: "center" }}>
+            <div
+              style={{
+                fontFamily: "PPNeueBit, monospace",
+                fontSize: "14px",
+                color: "rgba(255, 255, 255, 0.7)",
+                marginBottom: "8px",
+              }}
+            >
+              Catch Progress: {Math.round(catchProgress)}%
+            </div>
+            <div
+              style={{
+                width: "100%",
+                height: "30px",
+                backgroundColor: "rgba(255, 255, 255, 0.2)",
+                border: "2px solid rgba(255, 255, 255, 0.3)",
+                borderRadius: "4px",
+                overflow: "hidden",
+              }}
+            >
+              <div
+                style={{
+                  width: `${catchProgress}%`,
+                  height: "100%",
+                  backgroundColor: "rgba(100, 255, 100, 0.8)",
+                  transition: "width 0.1s linear",
+                }}
+              />
+            </div>
+          </div>
+
+          {/* Tap Button */}
+          <button
+            onClick={handleTap}
+            className="pixel-button"
+            style={{
+              fontSize: "18px",
+              padding: "16px 32px",
+              opacity: tapCooldown > 0 ? 0.5 : 1,
+              cursor: tapCooldown > 0 ? "not-allowed" : "pointer",
+            }}
+            disabled={tapCooldown > 0}
+          >
+            TAP
+          </button>
+        </div>
+      )}
+
+      {/* Cast Button - Show when not fishing */}
+      {!isFishing && (
+        <button
+          onClick={handleCast}
+          className="pixel-button"
+          style={{
+            position: "fixed",
+            bottom: "48px",
+            left: "50%",
+            transform: "translateX(-50%)",
+            fontSize: "clamp(12px, 1.2vw, 14px)",
+            height: "2.5rem",
+            lineHeight: "2.5rem",
+            padding: "0 1.5rem",
+            zIndex: 100,
+          }}
+        >
+          cast
+        </button>
+      )}
+
+      {/* Reel Button - Only for Version 1 when fishing */}
+      {isFishing && minigameVersion === 1 && (
+        <button
+          onClick={handleReel}
+          className="pixel-button"
+          style={{
+            position: "fixed",
+            bottom: "48px",
+            left: "50%",
+            transform: "translateX(-50%)",
+            fontSize: "clamp(12px, 1.2vw, 14px)",
+            height: "2.5rem",
+            lineHeight: "2.5rem",
+            padding: "0 1.5rem",
+            zIndex: 100,
+          }}
+        >
+          reel
+        </button>
+      )}
 
       {/* Subtitle System */}
       <div className="subtitle-container" style={{ opacity: storyVisible ? 0 : 1, visibility: storyVisible ? "hidden" : "visible" }}>
