@@ -2443,6 +2443,9 @@ export function OceanScene() {
             flexDirection: "column",
             alignItems: "center",
             gap: "20px",
+            overflow: "visible",
+            padding: "0 20px",
+            boxSizing: "border-box",
           }}
         >
           {/* Timer */}
@@ -2458,7 +2461,7 @@ export function OceanScene() {
           </div>
 
           {/* Arced Slider */}
-          <svg width="300" height="120" viewBox="0 0 300 120">
+          <svg width="100%" height="120" viewBox="-20 0 340 120" style={{ maxWidth: "300px", overflow: "visible" }}>
             {/* Arc background */}
             <path
               d="M 50 100 A 100 100 0 0 1 250 100"
@@ -2539,8 +2542,17 @@ export function OceanScene() {
             })()}
           </svg>
 
-          {/* Slider Control */}
-          <div style={{ width: "100%", padding: "0 20px" }}>
+          {/* Slider Control - Positioned at cast button location */}
+          <div style={{ 
+            position: "fixed",
+            bottom: "48px",
+            left: "50%",
+            transform: "translateX(-50%)",
+            width: "300px",
+            maxWidth: "90vw",
+            padding: "0 20px",
+            zIndex: 201,
+          }}>
             <input
               type="range"
               min="-1"
