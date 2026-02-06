@@ -2544,10 +2544,10 @@ export function OceanScene() {
               
               return (
                 <>
-                  {/* Balance zone indicator (green arc segment) */}
+                  {/* Balance zone indicator (colored by fish rarity) */}
                   <path
                     d={`M ${centerX} ${centerY} L ${zoneX1} ${zoneY1} A ${radius} ${radius} 0 0 1 ${zoneX2} ${zoneY2} Z`}
-                    fill="rgba(100, 255, 100, 0.3)"
+                    fill={currentFish ? getRarityColor(currentFish.rarity).replace("0.6", "0.3") : "rgba(100, 255, 100, 0.3)"}
                   />
                   
                   {/* Fish pull indicator (red) */}
