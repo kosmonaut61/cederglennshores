@@ -959,6 +959,7 @@ export function OceanScene() {
   const fishingTimerRef = useRef<number | null>(null)
   const tapCooldownRef = useRef(0)
   const successWindowsRef = useRef<Array<{ start: number; end: number }>>([])
+  const feedbackKeyRef = useRef(0)
 
   
   // Net counts (how many of each type owned)
@@ -1479,6 +1480,7 @@ export function OceanScene() {
       if (success && currentFish) {
         setFishCaught((prev) => prev + 1)
         setCaughtFish(currentFish)
+        feedbackKeyRef.current += 1
         setFeedbackState({ type: "success", rarity: currentFish.rarity })
         const randomFlip = Math.random() > 0.5 ? 1 : -1
         const randomRotation = (Math.random() * 5 + 5) * (Math.random() > 0.5 ? 1 : -1)
@@ -1571,6 +1573,7 @@ export function OceanScene() {
       if (tireProgress >= 100 && currentFish) {
         setFishCaught((prev) => prev + 1)
         setCaughtFish(currentFish)
+        feedbackKeyRef.current += 1
         setFeedbackState({ type: "success", rarity: currentFish.rarity })
         const randomFlip = Math.random() > 0.5 ? 1 : -1
         const randomRotation = (Math.random() * 5 + 5) * (Math.random() > 0.5 ? 1 : -1)
@@ -1625,6 +1628,7 @@ export function OceanScene() {
       if (catchProgress >= 100 && currentFish) {
         setFishCaught((prev) => prev + 1)
         setCaughtFish(currentFish)
+        feedbackKeyRef.current += 1
         setFeedbackState({ type: "success", rarity: currentFish.rarity })
         const randomFlip = Math.random() > 0.5 ? 1 : -1
         const randomRotation = (Math.random() * 5 + 5) * (Math.random() > 0.5 ? 1 : -1)
@@ -1818,6 +1822,7 @@ export function OceanScene() {
       {/* Feedback Border Overlay */}
       {feedbackState && (
         <div
+          key={feedbackKeyRef.current}
           style={{
             position: "fixed",
             top: 0,
@@ -1830,7 +1835,7 @@ export function OceanScene() {
               ? `radial-gradient(circle at center, transparent 40%, ${getRarityColor(feedbackState.rarity)} 70%, ${getRarityColor(feedbackState.rarity).replace("0.6", "0.8")} 100%)`
               : "radial-gradient(circle at center, transparent 40%, rgba(255, 50, 50, 0.4) 70%, rgba(255, 50, 50, 0.6) 100%)",
             animation: feedbackState.type === "success"
-              ? "flashSuccess 0.6s ease-out"
+              ? "flashSuccess 0.6s ease-out forwards"
               : "flashRed 0.6s ease-out, shake 0.5s ease-in-out",
           }}
         />
@@ -1864,6 +1869,7 @@ export function OceanScene() {
         
         @keyframes flashSuccess {
           0% { opacity: 1; }
+          50% { opacity: 1; }
           100% { opacity: 0; }
         }
         
