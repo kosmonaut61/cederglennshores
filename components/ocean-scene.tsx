@@ -1190,10 +1190,9 @@ export function OceanScene() {
     const renderer = new THREE.WebGLRenderer({ canvas, antialias: false })
     renderer.setSize(window.innerWidth, window.innerHeight)
     
-    // Aggressive pixel ratio reduction for iOS/mobile to reduce memory usage
-    // iOS devices often have high pixel ratios (2-3x) which quadruples/noncuples memory usage
-    const maxPixelRatio = isIOS ? 0.5 : isMobile ? 0.75 : 1.0
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, maxPixelRatio))
+    // Use full pixel ratio for now - handle memory optimization separately
+    // The pixel ratio reduction was causing UV coordinate mismatches in the shader
+    renderer.setPixelRatio(window.devicePixelRatio)
     rendererRef.current = renderer
 
     const params = paramsRef.current
@@ -1203,9 +1202,13 @@ export function OceanScene() {
     // Store focal length multiplier as a uniform so shader can use it
     const focalLengthMultiplier = 1.5 // Use same as desktop
     
+    // Calculate actual rendering resolution (accounts for pixel ratio)
+    const renderWidth = window.innerWidth * window.devicePixelRatio
+    const renderHeight = window.innerHeight * window.devicePixelRatio
+    
     const uniforms: Record<string, { value: unknown }> = {
       uTime: { value: 0 },
-      uResolution: { value: new THREE.Vector2(window.innerWidth, window.innerHeight) },
+      uResolution: { value: new THREE.Vector2(renderWidth, renderHeight) },
       uMousePos: { value: mousePosRef.current },
       uStyle: { value: params.style },
       uEnableGrid: { value: params.enableGrid ? 1.0 : 0.0 },
@@ -1258,7 +1261,10 @@ export function OceanScene() {
 
     const handleResize = () => {
       renderer.setSize(window.innerWidth, window.innerHeight)
-      uniforms.uResolution.value = new THREE.Vector2(window.innerWidth, window.innerHeight)
+      // Use actual rendering resolution to match gl_FragCoord coordinates
+      const renderWidth = window.innerWidth * window.devicePixelRatio
+      const renderHeight = window.innerHeight * window.devicePixelRatio
+      uniforms.uResolution.value = new THREE.Vector2(renderWidth, renderHeight)
     }
 
     const handleMouseMove = (event: MouseEvent) => {
