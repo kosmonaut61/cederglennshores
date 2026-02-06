@@ -1476,28 +1476,29 @@ export function OceanScene() {
       }
     })
     
-    if (success && currentFish) {
-      setFishCaught((prev) => prev + 1)
-      setCaughtFish(currentFish)
-      setFeedbackState({ type: "success", rarity: currentFish.rarity })
-      const randomFlip = Math.random() > 0.5 ? 1 : -1
-      const randomRotation = (Math.random() * 5 + 5) * (Math.random() > 0.5 ? 1 : -1)
-      setFishTransform({ flip: randomFlip, rotation: randomRotation })
-      setShowFishPopup(true)
-      setTimeout(() => {
-        setShowFishPopup(false)
-        setCaughtFish(null)
-      }, 1500)
-    } else {
-      setFeedbackState({ type: "fail" })
-      setCurrentFish(null)
-    }
-    
-    setIsFishing(false)
-    setMarkAngle(0)
-    setTimeout(() => {
-      setFeedbackState(null)
-    }, 600)
+      if (success && currentFish) {
+        setFishCaught((prev) => prev + 1)
+        setCaughtFish(currentFish)
+        setFeedbackState({ type: "success", rarity: currentFish.rarity })
+        const randomFlip = Math.random() > 0.5 ? 1 : -1
+        const randomRotation = (Math.random() * 5 + 5) * (Math.random() > 0.5 ? 1 : -1)
+        setFishTransform({ flip: randomFlip, rotation: randomRotation })
+        setShowFishPopup(true)
+        setTimeout(() => {
+          setShowFishPopup(false)
+          setCaughtFish(null)
+          setFeedbackState(null) // Clear feedback overlay
+        }, 1500)
+      } else {
+        setFeedbackState({ type: "fail" })
+        setCurrentFish(null)
+        setTimeout(() => {
+          setFeedbackState(null)
+        }, 600)
+      }
+      
+      setIsFishing(false)
+      setMarkAngle(0)
   }
 
   // Main reel handler routes to version-specific handlers
@@ -1536,7 +1537,9 @@ export function OceanScene() {
 
       // Check if player is counterbalancing (within ~12 degrees = 0.2 units)
       const balanceDiff = Math.abs(fishPullDirection - playerSliderPosition)
-      if (balanceDiff < 0.2) {
+      const isInSafeZone = balanceDiff < 0.2
+      
+      if (isInSafeZone) {
         // Player is counterbalancing - tire the fish
         setTireProgress((prev) => Math.min(100, prev + 2))
       } else {
@@ -1544,23 +1547,25 @@ export function OceanScene() {
         setTireProgress((prev) => Math.max(0, prev - 0.5))
       }
 
-      // Update timer
-      setBalanceGameTimer((prev) => {
-        if (prev <= 0) {
-          // Time's up - fish escapes
-          setFeedbackState({ type: "fail" })
-          setCurrentFish(null)
-          setIsFishing(false)
-          setTireProgress(0)
-          setFishPullDirection(0)
-          setPlayerSliderPosition(0)
-          setTimeout(() => {
-            setFeedbackState(null)
-          }, 600)
-          return 0
-        }
-        return prev - 0.1
-      })
+      // Update timer - only count down when OUTSIDE safe zone
+      if (!isInSafeZone) {
+        setBalanceGameTimer((prev) => {
+          if (prev <= 0) {
+            // Time's up - fish escapes
+            setFeedbackState({ type: "fail" })
+            setCurrentFish(null)
+            setIsFishing(false)
+            setTireProgress(0)
+            setFishPullDirection(0)
+            setPlayerSliderPosition(0)
+            setTimeout(() => {
+              setFeedbackState(null)
+            }, 600)
+            return 0
+          }
+          return prev - 0.1
+        })
+      }
 
       // Check for success
       if (tireProgress >= 100 && currentFish) {
@@ -1574,11 +1579,13 @@ export function OceanScene() {
         setTimeout(() => {
           setShowFishPopup(false)
           setCaughtFish(null)
+          setFeedbackState(null) // Clear feedback overlay
         }, 1500)
         setIsFishing(false)
         setTireProgress(0)
         setFishPullDirection(0)
         setPlayerSliderPosition(0)
+        setBalanceGameTimer(0)
       }
     }, 50) // Update every 50ms
 
@@ -1626,6 +1633,7 @@ export function OceanScene() {
         setTimeout(() => {
           setShowFishPopup(false)
           setCaughtFish(null)
+          setFeedbackState(null) // Clear feedback overlay
         }, 1500)
         setIsFishing(false)
         setLineTension(0)
