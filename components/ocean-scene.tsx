@@ -770,6 +770,10 @@ const vertexShader = `varying vec2 vUv;void main(){vUv=uv;gl_Position=vec4(posit
 const subtitles: Array<{ text: string; delay: number }> = []
 
 export function OceanScene() {
+  // Detect iOS/mobile for performance optimizations (must be early)
+  const isIOS = typeof window !== "undefined" && /iPad|iPhone|iPod/.test(navigator.userAgent)
+  const isMobile = typeof window !== "undefined" && /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
+  
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const rendererRef = useRef<THREE.WebGLRenderer | null>(null)
   const uniformsRef = useRef<Record<string, { value: unknown }> | null>(null)
@@ -777,6 +781,40 @@ export function OceanScene() {
   const mousePosRef = useRef(new THREE.Vector2(0, 0))
 
   const [isPlaying, setIsPlaying] = useState(false)
+  const [showDebugModal, setShowDebugModal] = useState(false)
+  
+  // Debug state for real-time parameter adjustment
+  const [debugParams, setDebugParams] = useState({
+    cameraHeight: isIOS || isMobile ? 7.0 : 4.0,
+    cameraTilt: isIOS || isMobile ? 0.8 : -0.1,
+    focalLength: isIOS || isMobile ? 3.5 : 1.5,
+    sunPosX: 0.0,
+    sunPosY: 0.3,
+    sunSize: 0.9,
+    sunIntensity: 3.0,
+    waveHeight: 0.2,
+    waveChoppiness: 2.5,
+    speed: 0.2,
+    flySpeed: 0.5,
+  })
+  
+  // Update uniforms in real-time when debug params change
+  useEffect(() => {
+    if (!uniformsRef.current) return
+    
+    uniformsRef.current.uCameraHeight.value = debugParams.cameraHeight
+    uniformsRef.current.uCameraTilt.value = debugParams.cameraTilt
+    uniformsRef.current.uFocalLength.value = debugParams.focalLength
+    uniformsRef.current.uSunPosX.value = debugParams.sunPosX
+    uniformsRef.current.uSunPosY.value = debugParams.sunPosY
+    uniformsRef.current.uSunSize.value = debugParams.sunSize
+    uniformsRef.current.uSunIntensity.value = debugParams.sunIntensity
+    uniformsRef.current.uWaveHeight.value = debugParams.waveHeight
+    uniformsRef.current.uWaveChoppiness.value = debugParams.waveChoppiness
+    uniformsRef.current.uSpeed.value = debugParams.speed
+    uniformsRef.current.uFlySpeed.value = debugParams.flySpeed
+    paramsRef.current.flySpeed = debugParams.flySpeed
+  }, [debugParams])
   const [storyVisible, setStoryVisible] = useState(false)
   const [creditsVisible, setCreditsVisible] = useState(false)
   const [scrollProgress, setScrollProgress] = useState(0)
@@ -1104,16 +1142,15 @@ export function OceanScene() {
     [updateAllUniforms]
   )
 
-  // Detect iOS/mobile for performance optimizations (must be before callbacks that use it)
-  const isIOS = typeof window !== "undefined" && /iPad|iPhone|iPod/.test(navigator.userAgent)
-  const isMobile = typeof window !== "undefined" && /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
-
   const updateScrollAnimations = useCallback(() => {
     const scrollHeight = document.documentElement.scrollHeight - window.innerHeight
     const progress = Math.min(1, window.scrollY / scrollHeight)
     setScrollProgress(progress)
 
     if (!uniformsRef.current) return
+    
+    // Don't override debug values when debug modal is open
+    if (showDebugModal) return
 
     // Adjust camera for mobile to show more horizon/sky
     const cameraStartHeight = isIOS || isMobile ? 7.0 : 4.0
@@ -1127,7 +1164,7 @@ export function OceanScene() {
 
     const cameraTilt = cameraTiltStart + (cameraTiltEnd - cameraTiltStart) * easedProgress
     uniformsRef.current.uCameraTilt.value = cameraTilt
-  }, [])
+  }, [showDebugModal])
   
   // Initialize Three.js
   useEffect(() => {
@@ -2240,6 +2277,250 @@ export function OceanScene() {
           </select>
         </div>
       </div>
+
+      {/* Debug Button */}
+      <button
+        onClick={() => setShowDebugModal(!showDebugModal)}
+        style={{
+          position: "fixed",
+          bottom: "20px",
+          left: "20px",
+          width: "40px",
+          height: "40px",
+          borderRadius: "50%",
+          backgroundColor: "rgba(0, 0, 0, 0.6)",
+          border: "2px solid rgba(255, 255, 255, 0.3)",
+          color: "white",
+          fontSize: "20px",
+          cursor: "pointer",
+          zIndex: 10001,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          fontFamily: "monospace",
+        }}
+        title="Debug Panel"
+      >
+        ⚙
+      </button>
+
+      {/* Debug Modal */}
+      {showDebugModal && (
+        <div
+          style={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: "rgba(0, 0, 0, 0.9)",
+            zIndex: 10000,
+            overflowY: "auto",
+            padding: "20px",
+            color: "white",
+            fontFamily: "monospace",
+          }}
+        >
+          <div style={{ maxWidth: "600px", margin: "0 auto" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
+              <h2 style={{ margin: 0 }}>Debug Panel</h2>
+              <button
+                onClick={() => setShowDebugModal(false)}
+                style={{
+                  backgroundColor: "rgba(255, 255, 255, 0.2)",
+                  border: "1px solid rgba(255, 255, 255, 0.3)",
+                  color: "white",
+                  padding: "8px 16px",
+                  cursor: "pointer",
+                  borderRadius: "4px",
+                }}
+              >
+                Close
+              </button>
+            </div>
+
+            {/* Camera Controls */}
+            <div style={{ marginBottom: "30px" }}>
+              <h3 style={{ borderBottom: "1px solid rgba(255, 255, 255, 0.3)", paddingBottom: "10px" }}>Camera</h3>
+              
+              <div style={{ marginBottom: "15px" }}>
+                <label style={{ display: "block", marginBottom: "5px" }}>
+                  Camera Height: {debugParams.cameraHeight.toFixed(2)}
+                </label>
+                <input
+                  type="range"
+                  min="0"
+                  max="15"
+                  step="0.1"
+                  value={debugParams.cameraHeight}
+                  onChange={(e) => setDebugParams({ ...debugParams, cameraHeight: parseFloat(e.target.value) })}
+                  style={{ width: "100%" }}
+                />
+              </div>
+
+              <div style={{ marginBottom: "15px" }}>
+                <label style={{ display: "block", marginBottom: "5px" }}>
+                  Camera Tilt: {debugParams.cameraTilt.toFixed(2)}
+                </label>
+                <input
+                  type="range"
+                  min="-2"
+                  max="3"
+                  step="0.1"
+                  value={debugParams.cameraTilt}
+                  onChange={(e) => setDebugParams({ ...debugParams, cameraTilt: parseFloat(e.target.value) })}
+                  style={{ width: "100%" }}
+                />
+              </div>
+
+              <div style={{ marginBottom: "15px" }}>
+                <label style={{ display: "block", marginBottom: "5px" }}>
+                  Focal Length: {debugParams.focalLength.toFixed(2)}
+                </label>
+                <input
+                  type="range"
+                  min="0.5"
+                  max="5"
+                  step="0.1"
+                  value={debugParams.focalLength}
+                  onChange={(e) => setDebugParams({ ...debugParams, focalLength: parseFloat(e.target.value) })}
+                  style={{ width: "100%" }}
+                />
+              </div>
+            </div>
+
+            {/* Sun Controls */}
+            <div style={{ marginBottom: "30px" }}>
+              <h3 style={{ borderBottom: "1px solid rgba(255, 255, 255, 0.3)", paddingBottom: "10px" }}>Sun</h3>
+              
+              <div style={{ marginBottom: "15px" }}>
+                <label style={{ display: "block", marginBottom: "5px" }}>
+                  Sun Position X: {debugParams.sunPosX.toFixed(2)}
+                </label>
+                <input
+                  type="range"
+                  min="-1"
+                  max="1"
+                  step="0.01"
+                  value={debugParams.sunPosX}
+                  onChange={(e) => setDebugParams({ ...debugParams, sunPosX: parseFloat(e.target.value) })}
+                  style={{ width: "100%" }}
+                />
+              </div>
+
+              <div style={{ marginBottom: "15px" }}>
+                <label style={{ display: "block", marginBottom: "5px" }}>
+                  Sun Position Y: {debugParams.sunPosY.toFixed(2)}
+                </label>
+                <input
+                  type="range"
+                  min="-0.5"
+                  max="1"
+                  step="0.01"
+                  value={debugParams.sunPosY}
+                  onChange={(e) => setDebugParams({ ...debugParams, sunPosY: parseFloat(e.target.value) })}
+                  style={{ width: "100%" }}
+                />
+              </div>
+
+              <div style={{ marginBottom: "15px" }}>
+                <label style={{ display: "block", marginBottom: "5px" }}>
+                  Sun Size: {debugParams.sunSize.toFixed(2)}
+                </label>
+                <input
+                  type="range"
+                  min="0"
+                  max="5"
+                  step="0.1"
+                  value={debugParams.sunSize}
+                  onChange={(e) => setDebugParams({ ...debugParams, sunSize: parseFloat(e.target.value) })}
+                  style={{ width: "100%" }}
+                />
+              </div>
+
+              <div style={{ marginBottom: "15px" }}>
+                <label style={{ display: "block", marginBottom: "5px" }}>
+                  Sun Intensity: {debugParams.sunIntensity.toFixed(2)}
+                </label>
+                <input
+                  type="range"
+                  min="0"
+                  max="10"
+                  step="0.1"
+                  value={debugParams.sunIntensity}
+                  onChange={(e) => setDebugParams({ ...debugParams, sunIntensity: parseFloat(e.target.value) })}
+                  style={{ width: "100%" }}
+                />
+              </div>
+            </div>
+
+            {/* Wave Controls */}
+            <div style={{ marginBottom: "30px" }}>
+              <h3 style={{ borderBottom: "1px solid rgba(255, 255, 255, 0.3)", paddingBottom: "10px" }}>Waves</h3>
+              
+              <div style={{ marginBottom: "15px" }}>
+                <label style={{ display: "block", marginBottom: "5px" }}>
+                  Wave Height: {debugParams.waveHeight.toFixed(2)}
+                </label>
+                <input
+                  type="range"
+                  min="0"
+                  max="1"
+                  step="0.01"
+                  value={debugParams.waveHeight}
+                  onChange={(e) => setDebugParams({ ...debugParams, waveHeight: parseFloat(e.target.value) })}
+                  style={{ width: "100%" }}
+                />
+              </div>
+
+              <div style={{ marginBottom: "15px" }}>
+                <label style={{ display: "block", marginBottom: "5px" }}>
+                  Wave Choppiness: {debugParams.waveChoppiness.toFixed(2)}
+                </label>
+                <input
+                  type="range"
+                  min="0"
+                  max="5"
+                  step="0.1"
+                  value={debugParams.waveChoppiness}
+                  onChange={(e) => setDebugParams({ ...debugParams, waveChoppiness: parseFloat(e.target.value) })}
+                  style={{ width: "100%" }}
+                />
+              </div>
+
+              <div style={{ marginBottom: "15px" }}>
+                <label style={{ display: "block", marginBottom: "5px" }}>
+                  Wave Speed: {debugParams.speed.toFixed(2)}
+                </label>
+                <input
+                  type="range"
+                  min="0"
+                  max="1"
+                  step="0.01"
+                  value={debugParams.speed}
+                  onChange={(e) => setDebugParams({ ...debugParams, speed: parseFloat(e.target.value) })}
+                  style={{ width: "100%" }}
+                />
+              </div>
+
+              <div style={{ marginBottom: "15px" }}>
+                <label style={{ display: "block", marginBottom: "5px" }}>
+                  Fly Speed: {debugParams.flySpeed.toFixed(2)}
+                </label>
+                <input
+                  type="range"
+                  min="0"
+                  max="2"
+                  step="0.1"
+                  value={debugParams.flySpeed}
+                  onChange={(e) => setDebugParams({ ...debugParams, flySpeed: parseFloat(e.target.value) })}
+                  style={{ width: "100%" }}
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
     </div>
   )
