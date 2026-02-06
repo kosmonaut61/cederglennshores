@@ -1924,6 +1924,17 @@ export function OceanScene() {
           0% { opacity: 1; }
           100% { opacity: 0; }
         }
+        
+        @keyframes fishPulse {
+          0%, 100% { 
+            transform: scale(1);
+            opacity: 0.9;
+          }
+          50% { 
+            transform: scale(1.3);
+            opacity: 1;
+          }
+        }
       `}</style>
       
 
@@ -2542,6 +2553,10 @@ export function OceanScene() {
               const zoneX2 = centerX + Math.cos(balanceZoneEnd) * radius
               const zoneY2 = centerY - Math.sin(balanceZoneEnd) * radius
               
+              // Check if player is in safe zone for visual feedback
+              const balanceDiff = Math.abs(fishPullDirection - playerSliderPosition)
+              const isInSafeZone = currentFish ? balanceDiff < currentFish.tolerance : false
+              
               return (
                 <>
                   {/* Balance zone indicator (colored by fish rarity) */}
@@ -2550,12 +2565,16 @@ export function OceanScene() {
                     fill={currentFish ? getRarityColor(currentFish.rarity).replace("0.6", "0.3") : "rgba(100, 255, 100, 0.3)"}
                   />
                   
-                  {/* Fish pull indicator (red) */}
+                  {/* Fish pull indicator (red) - pulses when player is successful */}
                   <circle
                     cx={fishX}
                     cy={fishY}
                     r="10"
                     fill="rgba(255, 100, 100, 0.9)"
+                    style={{
+                      animation: isInSafeZone ? "fishPulse 0.8s ease-in-out infinite" : "none",
+                      transformOrigin: `${fishX}px ${fishY}px`,
+                    }}
                   />
                   
                   {/* Player slider position (white) */}
