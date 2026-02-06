@@ -597,7 +597,10 @@ const fragmentShader = `
     
     if (uStyle > 4.5 && uStyle < 5.5) {
         // PIXELATED / MOSAIC
-        float pixelSize = 8.0;
+        // Scale pixel size based on resolution to maintain consistent pixelation
+        float basePixelSize = 8.0;
+        float resolutionScale = min(uResolution.x, uResolution.y) / 800.0; // Normalize to ~800px baseline
+        float pixelSize = basePixelSize * max(1.0, resolutionScale);
         vec2 pixelCoord = floor(coord / pixelSize) * pixelSize;
         
         // Sample from center of each pixel block for consistency
@@ -816,19 +819,6 @@ export function OceanScene() {
     paramsRef.current.flySpeed = debugParams.flySpeed
   }, [debugParams])
   
-  // Apply initial debug params immediately after uniforms are initialized (on iOS/mobile)
-  // This ensures the correct values are set on initial load before scroll animation runs
-  const applyInitialDebugParams = useCallback(() => {
-    if (!uniformsRef.current) return
-    if (!isIOS && !isMobile) return
-    
-    // Apply debug params immediately for iOS/mobile to ensure correct initial state
-    uniformsRef.current.uCameraHeight.value = debugParams.cameraHeight
-    uniformsRef.current.uCameraTilt.value = debugParams.cameraTilt
-    uniformsRef.current.uFocalLength.value = debugParams.focalLength
-    uniformsRef.current.uSunPosY.value = debugParams.sunPosY
-    uniformsRef.current.uSunSize.value = debugParams.sunSize
-  }, [debugParams, isIOS, isMobile])
   const [storyVisible, setStoryVisible] = useState(false)
   const [creditsVisible, setCreditsVisible] = useState(false)
   const [scrollProgress, setScrollProgress] = useState(0)
@@ -1190,9 +1180,10 @@ export function OceanScene() {
     const renderer = new THREE.WebGLRenderer({ canvas, antialias: false })
     renderer.setSize(window.innerWidth, window.innerHeight)
     
-    // Use full pixel ratio for now - handle memory optimization separately
-    // The pixel ratio reduction was causing UV coordinate mismatches in the shader
-    renderer.setPixelRatio(window.devicePixelRatio)
+    // Reduce pixel ratio for performance on all platforms
+    // This significantly reduces memory usage and GPU load
+    const maxPixelRatio = 0.85 // Same for all platforms
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, maxPixelRatio))
     rendererRef.current = renderer
 
     const params = paramsRef.current
@@ -1202,9 +1193,10 @@ export function OceanScene() {
     // Store focal length multiplier as a uniform so shader can use it
     const focalLengthMultiplier = 1.5 // Use same as desktop
     
-    // Calculate actual rendering resolution (accounts for pixel ratio)
-    const renderWidth = window.innerWidth * window.devicePixelRatio
-    const renderHeight = window.innerHeight * window.devicePixelRatio
+    // Get actual drawing buffer size (accounts for pixel ratio reduction)
+    // This ensures uResolution matches gl_FragCoord coordinates
+    const renderWidth = renderer.domElement.width
+    const renderHeight = renderer.domElement.height
     
     const uniforms: Record<string, { value: unknown }> = {
       uTime: { value: 0 },
@@ -1261,10 +1253,11 @@ export function OceanScene() {
 
     const handleResize = () => {
       renderer.setSize(window.innerWidth, window.innerHeight)
-      // Use actual rendering resolution to match gl_FragCoord coordinates
-      const renderWidth = window.innerWidth * window.devicePixelRatio
-      const renderHeight = window.innerHeight * window.devicePixelRatio
-      uniforms.uResolution.value = new THREE.Vector2(renderWidth, renderHeight)
+      // Re-apply pixel ratio after resize (same for all platforms)
+      const maxPixelRatio = 0.85
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, maxPixelRatio))
+      // Use actual drawing buffer size to match gl_FragCoord coordinates
+      uniforms.uResolution.value = new THREE.Vector2(renderer.domElement.width, renderer.domElement.height)
     }
 
     const handleMouseMove = (event: MouseEvent) => {
@@ -1275,8 +1268,8 @@ export function OceanScene() {
     window.addEventListener("resize", handleResize)
     document.addEventListener("mousemove", handleMouseMove)
 
-    // Throttle to lower FPS on iOS/mobile to reduce CPU/GPU load
-    const targetFPS = isIOS ? 15 : isMobile ? 20 : 24
+    // Throttle FPS for performance on all platforms
+    const targetFPS = 24 // Same for all platforms
     const frameInterval = 1000 / targetFPS
     let lastFrameTime = 0
     let isTabVisible = !document.hidden
