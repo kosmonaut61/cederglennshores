@@ -856,6 +856,9 @@ export function OceanScene() {
     }
   }, [musicEnabled, isPlaying])
 
+  // Fish data table
+  type FishRarity = "common" | "uncommon" | "rare" | "epic" | "legendary"
+  
   // Fishing game state
   const [fishCaught, setFishCaught] = useState(0)
   const [goldPieces, setGoldPieces] = useState(0)
@@ -863,8 +866,17 @@ export function OceanScene() {
   const [markAngle, setMarkAngle] = useState(0)
   const [feedbackState, setFeedbackState] = useState<{ type: "success"; rarity: FishRarity } | { type: "fail" } | null>(null)
   const [showFishPopup, setShowFishPopup] = useState(false)
-  // Fish data table
-  type FishRarity = "common" | "uncommon" | "rare" | "epic" | "legendary"
+  
+  // Version 2 state (balancing game)
+  const [fishPullDirection, setFishPullDirection] = useState(0) // -1 to 1 (left to right)
+  const [playerSliderPosition, setPlayerSliderPosition] = useState(0) // -1 to 1 (left to right)
+  const [tireProgress, setTireProgress] = useState(0) // 0 to 100
+  const [balanceGameTimer, setBalanceGameTimer] = useState(0) // Time remaining
+  
+  // Version 3 state (flappy bird-like)
+  const [lineTension, setLineTension] = useState(0) // 0 to 100 (snap at 100)
+  const [catchProgress, setCatchProgress] = useState(0) // 0 to 100
+  const [tapCooldown, setTapCooldown] = useState(0) // Cooldown to prevent spam
   
   // Get color for rarity-based feedback
   const getRarityColor = (rarity: FishRarity): string => {
