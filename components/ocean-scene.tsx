@@ -245,7 +245,7 @@ const fragmentShader = `
   float fbm(vec2 p) {
       float v = 0.0; float a = 0.5; 
       mat2 rot = mat2(0.8, 0.6, -0.6, 0.8);
-      for(int i=0; i<3; i++) { v += a * noise(p); p = rot * p * 2.0; a *= 0.5; }
+      for(int i=0; i<2; i++) { v += a * noise(p); p = rot * p * 2.0; a *= 0.5; } // Reduced from 3 iterations
       return v;
   }
   
@@ -271,7 +271,7 @@ const fragmentShader = `
       float h = 0.0;
       float a = 0.6 * uWaveHeight;
       if(uWaveChoppiness > 0.1) q += vec2(fbm(q + uTime * 0.05), fbm(q)) * uWaveChoppiness;
-      for(int i=0; i<4; i++) {
+      for(int i=0; i<3; i++) { // Reduced from 4 iterations for memory savings
           float ang = float(i) * 0.6;
           vec2 dir = vec2(sin(ang), cos(ang) * 1.5); dir = normalize(dir);
           float wave = 1.0 - abs(sin(dot(q, dir) - uTime * uSpeed + float(i)));
@@ -350,33 +350,25 @@ const fragmentShader = `
       float centerDist = length(scaledPos);
       float distanceFactor = 1.0 + centerDist * 0.5;
 
+      // Reduced ghost calculations for memory savings (from 9 to 6)
       float f2  = max(1.0 / (1.0 + 32.0 * pow(length(uvd + 0.8 * scaledPos), 2.0)), 0.0) * 0.25;
-      float f22 = max(1.0 / (1.0 + 32.0 * pow(length(uvd + 0.85 * scaledPos), 2.0)), 0.0) * 0.23;
-      float f23 = max(1.0 / (1.0 + 32.0 * pow(length(uvd + 0.9 * scaledPos), 2.0)), 0.0) * 0.21;
+      float f22 = max(1.0 / (1.0 + 32.0 * pow(length(uvd + 0.9 * scaledPos), 2.0)), 0.0) * 0.23;
       
       vec2 uvx = mix(uv, uvd, -0.5);
       
       float f4  = max(0.01 - pow(length(uvx + 0.4 * scaledPos), 2.4), 0.0) * 6.0;
-      float f42 = max(0.01 - pow(length(uvx + 0.45 * scaledPos), 2.4), 0.0) * 5.0;
-      float f43 = max(0.01 - pow(length(uvx + 0.5 * scaledPos), 2.4), 0.0) * 3.0;
+      float f42 = max(0.01 - pow(length(uvx + 0.5 * scaledPos), 2.4), 0.0) * 5.0;
       
       uvx = mix(uv, uvd, -0.4);
       
-      float f5  = max(0.01 - pow(length(uvx + 0.2 * scaledPos), 5.5), 0.0) * 2.0;
-      float f52 = max(0.01 - pow(length(uvx + 0.4 * scaledPos), 5.5), 0.0) * 2.0;
-      float f53 = max(0.01 - pow(length(uvx + 0.6 * scaledPos), 5.5), 0.0) * 2.0;
-      
-      uvx = mix(uv, uvd, -0.5);
-      
-      float f6  = max(0.01 - pow(length(uvx - 0.3 * scaledPos), 1.6), 0.0) * 6.0;
-      float f62 = max(0.01 - pow(length(uvx - 0.325 * scaledPos), 1.6), 0.0) * 3.0;
-      float f63 = max(0.01 - pow(length(uvx - 0.35 * scaledPos), 1.6), 0.0) * 5.0;
+      float f5  = max(0.01 - pow(length(uvx + 0.3 * scaledPos), 5.5), 0.0) * 2.0;
+      float f52 = max(0.01 - pow(length(uvx + 0.5 * scaledPos), 5.5), 0.0) * 2.0;
       
       vec3 c = vec3(0.0);
       
-      c.r += (f2 + f4 + f5 + f6) * distanceFactor; 
-      c.g += (f22 + f42 + f52 + f62) * distanceFactor; 
-      c.b += (f23 + f43 + f53 + f63) * distanceFactor;
+      c.r += (f2 + f4 + f5) * distanceFactor; 
+      c.g += (f22 + f42 + f52) * distanceFactor; 
+      c.b += (f22 + f42 + f52) * distanceFactor; // Reuse green channel for blue
       c = max(vec3(0.0), c * 1.3 - vec3(length(uvd) * 0.05));
       
       return vec4(c, f0);
@@ -407,8 +399,8 @@ const fragmentShader = `
   }
 
   vec3 renderScene(vec3 ro, vec3 rd, vec3 sunDir) {
-      float t = 0.0; float d = 0.0; float maxDist = 150.0;
-      for(int i=0; i<100; i++) { d = map(ro + rd*t); t += d * 0.6; if(d<0.01 || t>maxDist) break; }
+      float t = 0.0; float d = 0.0; float maxDist = 120.0; // Reduced from 150.0 for memory savings
+      for(int i=0; i<70; i++) { d = map(ro + rd*t); t += d * 0.6; if(d<0.01 || t>maxDist) break; } // Reduced from 100 iterations
       vec3 col = vec3(0.0);
       
       if(t < maxDist) {
@@ -1182,7 +1174,7 @@ export function OceanScene() {
     
     // Reduce pixel ratio for performance on all platforms
     // This significantly reduces memory usage and GPU load
-    const maxPixelRatio = 0.85 // Same for all platforms
+    const maxPixelRatio = 0.75 // Reduced from 0.85 for better memory management
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, maxPixelRatio))
     rendererRef.current = renderer
 
@@ -1254,7 +1246,7 @@ export function OceanScene() {
     const handleResize = () => {
       renderer.setSize(window.innerWidth, window.innerHeight)
       // Re-apply pixel ratio after resize (same for all platforms)
-      const maxPixelRatio = 0.85
+      const maxPixelRatio = 0.75
       renderer.setPixelRatio(Math.min(window.devicePixelRatio, maxPixelRatio))
       // Use actual drawing buffer size to match gl_FragCoord coordinates
       uniforms.uResolution.value = new THREE.Vector2(renderer.domElement.width, renderer.domElement.height)
@@ -1269,7 +1261,7 @@ export function OceanScene() {
     document.addEventListener("mousemove", handleMouseMove)
 
     // Throttle FPS for performance on all platforms
-    const targetFPS = 24 // Same for all platforms
+    const targetFPS = 20 // Reduced from 24 for better memory management
     const frameInterval = 1000 / targetFPS
     let lastFrameTime = 0
     let isTabVisible = !document.hidden
