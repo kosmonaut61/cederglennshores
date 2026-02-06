@@ -1564,7 +1564,7 @@ export function OceanScene() {
       const isSwingTime = fishSwingCounterRef.current % swingInterval === 0
       
       setFishPullDirection((prev) => {
-        let newDirection
+        let targetDirection
         if (isSwingTime) {
           // Dramatic swing - move significantly in a random direction
           // Swing amount scales with strength (stronger fish swing harder)
@@ -1572,11 +1572,17 @@ export function OceanScene() {
           const baseSwingMin = 0.5
           const baseSwingMax = 0.75
           const swingAmount = (baseSwingMin + Math.random() * (baseSwingMax - baseSwingMin)) * fishStrength
-          newDirection = prev + (swingDirection * swingAmount)
+          targetDirection = prev + (swingDirection * swingAmount)
         } else {
           // Small jerks - subtle movements
-          newDirection = prev + (Math.random() - 0.5) * 0.15
+          targetDirection = prev + (Math.random() - 0.5) * 0.15
         }
+        
+        // Apply easing/smoothing to make movement less jarring
+        // Lerp between current and target direction (0.3 = 30% towards target per frame)
+        const easingFactor = 0.3
+        const newDirection = prev + (targetDirection - prev) * easingFactor
+        
         return Math.max(-1, Math.min(1, newDirection))
       })
 
@@ -1933,6 +1939,15 @@ export function OceanScene() {
           50% { 
             transform: scale(1.3);
             opacity: 1;
+          }
+        }
+        
+        @keyframes playerPulse {
+          0%, 100% { 
+            transform: scale(1);
+          }
+          50% { 
+            transform: scale(1.2);
           }
         }
       `}</style>
@@ -2577,12 +2592,16 @@ export function OceanScene() {
                     }}
                   />
                   
-                  {/* Player slider position (white) */}
+                  {/* Player slider position (white) - pulses when in safe zone */}
                   <circle
                     cx={playerX}
                     cy={playerY}
                     r="10"
                     fill="rgba(255, 255, 255, 0.9)"
+                    style={{
+                      animation: isInSafeZone ? "playerPulse 0.8s ease-in-out infinite" : "none",
+                      transformOrigin: `${playerX}px ${playerY}px`,
+                    }}
                   />
                   
                   {/* Line from center to fish */}
