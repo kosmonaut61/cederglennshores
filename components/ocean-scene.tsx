@@ -2313,7 +2313,7 @@ export function OceanScene() {
             left: 0,
             right: 0,
             bottom: 0,
-            backgroundColor: "rgba(0, 0, 0, 0.9)",
+            backgroundColor: "rgba(0, 0, 0, 0.5)",
             zIndex: 10000,
             overflowY: "auto",
             padding: "20px",
