@@ -903,17 +903,18 @@ export function OceanScene() {
     image: string
     strength: number // Affects tire progress rate (higher = slower progress)
     resistance: number // Affects swing interval (higher = longer between swings)
+    tolerance: number // Affects safe zone width (higher = wider safe zone, easier to balance)
   }
   
   // Get fish properties based on rarity
   // Legendary is baseline (1.0), others scale down
-  const getFishProperties = (rarity: FishRarity): { strength: number; resistance: number } => {
-    const rarityMultipliers: Record<FishRarity, { strength: number; resistance: number }> = {
-      common: { strength: 0.4, resistance: 0.4 },      // Easiest - fast progress, frequent swings
-      uncommon: { strength: 0.55, resistance: 0.55 },  // Easy
-      rare: { strength: 0.7, resistance: 0.7 },         // Medium
-      epic: { strength: 0.85, resistance: 0.85 },       // Hard
-      legendary: { strength: 1.0, resistance: 1.0 },     // Hardest - baseline (current difficulty)
+  const getFishProperties = (rarity: FishRarity): { strength: number; resistance: number; tolerance: number } => {
+    const rarityMultipliers: Record<FishRarity, { strength: number; resistance: number; tolerance: number }> = {
+      common: { strength: 0.4, resistance: 0.4, tolerance: 0.25 },      // Easiest - fast progress, frequent swings, wide safe zone
+      uncommon: { strength: 0.55, resistance: 0.55, tolerance: 0.22 },  // Easy - wider safe zone
+      rare: { strength: 0.7, resistance: 0.7, tolerance: 0.19 },         // Medium - medium safe zone
+      epic: { strength: 0.85, resistance: 0.85, tolerance: 0.17 },       // Hard - narrow safe zone
+      legendary: { strength: 1.0, resistance: 1.0, tolerance: 0.15 },     // Hardest - narrowest safe zone (baseline)
     }
     return rarityMultipliers[rarity]
   }
@@ -1579,9 +1580,9 @@ export function OceanScene() {
         return Math.max(-1, Math.min(1, newDirection))
       })
 
-      // Check if player is counterbalancing (within ~9 degrees = 0.15 units)
+      // Check if player is counterbalancing - tolerance scales with fish difficulty
       const balanceDiff = Math.abs(fishPullDirection - playerSliderPosition)
-      const isInSafeZone = balanceDiff < 0.15
+      const isInSafeZone = balanceDiff < currentFish.tolerance
       
       if (isInSafeZone) {
         // Player is counterbalancing - tire the fish
@@ -2531,10 +2532,11 @@ export function OceanScene() {
               const playerX = centerX + Math.cos(playerAngle) * radius
               const playerY = centerY - Math.sin(playerAngle) * radius
               
-              // Balance zone (~9 degrees = π/20 radians tolerance)
-              const tolerance = Math.PI / 20
-              const balanceZoneStart = fishAngle - tolerance
-              const balanceZoneEnd = fishAngle + tolerance
+              // Balance zone - tolerance scales with fish difficulty
+              // Convert tolerance from -1 to 1 range to radians (π/2 range for semicircle)
+              const toleranceRadians = currentFish ? (currentFish.tolerance * Math.PI / 2) : (Math.PI / 20)
+              const balanceZoneStart = fishAngle - toleranceRadians
+              const balanceZoneEnd = fishAngle + toleranceRadians
               const zoneX1 = centerX + Math.cos(balanceZoneStart) * radius
               const zoneY1 = centerY - Math.sin(balanceZoneStart) * radius
               const zoneX2 = centerX + Math.cos(balanceZoneEnd) * radius
