@@ -945,6 +945,7 @@ export function OceanScene() {
   const [currentFish, setCurrentFish] = useState<Fish | null>(null) // Fish selected before minigame
   const [fishTransform, setFishTransform] = useState({ flip: 1, rotation: 0 })
   const fishingTimerRef = useRef<number | null>(null)
+  const tapCooldownRef = useRef(0)
   const successWindowsRef = useRef<Array<{ start: number; end: number }>>([])
 
   
@@ -1323,6 +1324,23 @@ export function OceanScene() {
     return () => window.removeEventListener("scroll", updateScrollAnimations)
   }, [updateScrollAnimations])
 
+  // Version 2: Balancing game - handle slider movement (defined early for keyboard handler)
+  const handleBalanceSlider = useCallback((delta: number) => {
+    if (!isFishing || minigameVersion !== 2) return
+    setPlayerSliderPosition((prev) => Math.max(-1, Math.min(1, prev + delta)))
+  }, [isFishing, minigameVersion])
+
+  // Version 3: Tapping game - handle tap (defined early for keyboard handler)
+  const handleTap = useCallback(() => {
+    if (!isFishing || minigameVersion !== 3 || tapCooldownRef.current > 0) return
+    
+    // Reduce line tension and increase catch progress
+    setLineTension((prev) => Math.max(0, prev - 15))
+    setCatchProgress((prev) => Math.min(100, prev + 2))
+    tapCooldownRef.current = 100 // 100ms cooldown
+    setTapCooldown(100) // Also update state for UI
+  }, [isFishing, minigameVersion])
+
   // Keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -1421,6 +1439,7 @@ export function OceanScene() {
         setLineTension(0)
         setCatchProgress(0)
         setTapCooldown(0)
+        tapCooldownRef.current = 0
       }
     }
   }
@@ -1468,22 +1487,6 @@ export function OceanScene() {
       setFeedbackState(null)
     }, 600)
   }
-
-  // Version 2: Balancing game - handle slider movement
-  const handleBalanceSlider = useCallback((delta: number) => {
-    if (!isFishing || minigameVersion !== 2) return
-    setPlayerSliderPosition((prev) => Math.max(-1, Math.min(1, prev + delta)))
-  }, [isFishing, minigameVersion])
-
-  // Version 3: Tapping game - handle tap
-  const handleTap = useCallback(() => {
-    if (!isFishing || minigameVersion !== 3 || tapCooldown > 0) return
-    
-    // Reduce line tension and increase catch progress
-    setLineTension((prev) => Math.max(0, prev - 15))
-    setCatchProgress((prev) => Math.min(100, prev + 2))
-    setTapCooldown(100) // 100ms cooldown
-  }, [isFishing, minigameVersion, tapCooldown])
 
   // Main reel handler routes to version-specific handlers
   const handleReel = () => {
@@ -1596,6 +1599,7 @@ export function OceanScene() {
       setCatchProgress((prev) => Math.max(0, prev - 0.3))
 
       // Update tap cooldown
+      tapCooldownRef.current = Math.max(0, tapCooldownRef.current - 5)
       setTapCooldown((prev) => Math.max(0, prev - 5))
 
       // Check for success
