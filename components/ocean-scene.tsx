@@ -185,6 +185,7 @@ const fragmentShader = `
   uniform float uFlareAngle;
   uniform float uCameraHeight;
   uniform float uCameraTilt;
+  uniform float uFocalLength;
 
   uniform float uWaveHeight;
   uniform float uWaveChoppiness;
@@ -453,7 +454,7 @@ const fragmentShader = `
     vec3 uu = normalize(cross(ww, vec3(0.0, 1.0, 0.0)));
     vec3 vv = normalize(cross(uu, ww));
     vec3 sunDir = normalize(vec3(uSunPosX, uSunPosY, 1.0)); 
-    vec3 rd = normalize(uv.x * uu + uv.y * vv + 1.5 * ww);
+    vec3 rd = normalize(uv.x * uu + uv.y * vv + uFocalLength * ww);
     
     vec3 col = renderScene(ro, rd, sunDir);
     
@@ -467,7 +468,7 @@ const fragmentShader = `
         vec3 sunView = vec3(dot(sunDir, uu), dot(sunDir, vv), dot(sunDir, ww));
         
         if (sunView.z > 0.0) { 
-            float focalLength = 1.5;
+            float focalLength = uFocalLength;
             vec2 sunScreenPos = sunView.xy * focalLength; 
             
             float sunThreshold = 0.99 - uSunSize * 0.03;
@@ -609,7 +610,7 @@ const fragmentShader = `
         vec3 uuPixel = normalize(cross(wwPixel, vec3(0.0, 1.0, 0.0)));
         vec3 vvPixel = normalize(cross(uuPixel, wwPixel));
         vec3 sunDir = normalize(vec3(uSunPosX, uSunPosY, 1.0));
-        vec3 rdPixel = normalize(pixelUV.x * uuPixel + pixelUV.y * vvPixel + 1.5 * wwPixel);
+        vec3 rdPixel = normalize(pixelUV.x * uuPixel + pixelUV.y * vvPixel + uFocalLength * wwPixel);
         
         col = renderScene(roPixel, rdPixel, sunDir);
         
@@ -1144,6 +1145,11 @@ export function OceanScene() {
     rendererRef.current = renderer
 
     const params = paramsRef.current
+    
+    // Adjust field of view for mobile to show more of the scene
+    // Store focal length multiplier as a uniform so shader can use it
+    const focalLengthMultiplier = isIOS || isMobile ? 2.2 : 1.5 // Zoom out more on mobile
+    
     const uniforms: Record<string, { value: unknown }> = {
       uTime: { value: 0 },
       uResolution: { value: new THREE.Vector2(window.innerWidth, window.innerHeight) },
@@ -1153,6 +1159,7 @@ export function OceanScene() {
       uEnableClouds: { value: params.enableClouds && !isIOS ? 1.0 : 0.0 }, // Disable clouds on iOS for performance
       uEnableReflections: { value: params.enableReflections && !isIOS ? 1.0 : 0.0 }, // Disable reflections on iOS
       uEnableFX: { value: params.enableFX && !isIOS ? 1.0 : 0.0 }, // Disable expensive FX on iOS
+      uFocalLength: { value: focalLengthMultiplier }, // Add focal length as uniform
       uWaveHeight: { value: params.waveHeight },
       uWaveChoppiness: { value: params.waveChoppiness },
       uSpeed: { value: params.speed },
