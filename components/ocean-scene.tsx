@@ -785,12 +785,12 @@ export function OceanScene() {
   
   // Debug state for real-time parameter adjustment
   const [debugParams, setDebugParams] = useState({
-    cameraHeight: isIOS || isMobile ? 7.0 : 4.0,
-    cameraTilt: isIOS || isMobile ? 0.8 : -0.1,
-    focalLength: isIOS || isMobile ? 3.5 : 1.5,
+    cameraHeight: isIOS || isMobile ? 7.9 : 4.0,
+    cameraTilt: isIOS || isMobile ? 2.0 : -0.1,
+    focalLength: isIOS || isMobile ? 2.0 : 1.5,
     sunPosX: 0.0,
-    sunPosY: 0.3,
-    sunSize: 0.9,
+    sunPosY: isIOS || isMobile ? -0.13 : 0.3,
+    sunSize: isIOS || isMobile ? 0.6 : 0.9,
     sunIntensity: 3.0,
     waveHeight: 0.2,
     waveChoppiness: 2.5,
@@ -1153,9 +1153,9 @@ export function OceanScene() {
     if (showDebugModal) return
 
     // Adjust camera for mobile to show more horizon/sky
-    const cameraStartHeight = isIOS || isMobile ? 7.0 : 4.0
+    const cameraStartHeight = isIOS || isMobile ? 7.9 : 4.0
     const cameraEndHeight = isIOS || isMobile ? 3.0 : 1.5
-    const cameraTiltStart = isIOS || isMobile ? 0.8 : -0.1 // Look more upward on mobile to see horizon
+    const cameraTiltStart = isIOS || isMobile ? 2.0 : -0.1 // Look more upward on mobile to see horizon
     const cameraTiltEnd = isIOS || isMobile ? 2.8 : 2.5
 
     const easedProgress = progress * progress * (3 - 2 * progress)
@@ -1187,7 +1187,7 @@ export function OceanScene() {
     // Adjust field of view for mobile to show more of the scene
     // Larger focal length = wider field of view = shows more of the scene
     // Store focal length multiplier as a uniform so shader can use it
-    const focalLengthMultiplier = isIOS || isMobile ? 3.5 : 1.5 // Zoom out more on mobile (larger = wider view)
+    const focalLengthMultiplier = isIOS || isMobile ? 2.0 : 1.5 // Zoom out more on mobile (larger = wider view)
     
     const uniforms: Record<string, { value: unknown }> = {
       uTime: { value: 0 },
@@ -1206,10 +1206,10 @@ export function OceanScene() {
       uSssStrength: { value: params.sssStrength },
       uSssBaseColor: { value: new THREE.Color(params.sssBaseColor) },
       uSssTipColor: { value: new THREE.Color(params.sssTipColor) },
-      uSunSize: { value: params.sunSize },
+      uSunSize: { value: isIOS || isMobile ? 0.6 : params.sunSize },
       uSunIntensity: { value: params.sunIntensity },
       uSunPosX: { value: params.sunPosX },
-      uSunPosY: { value: params.sunPosY },
+      uSunPosY: { value: isIOS || isMobile ? -0.13 : params.sunPosY },
       uReflectionStrength: { value: params.reflectionStrength },
       uReflectionWidth: { value: params.reflectionWidth },
       uCloudDensity: { value: params.cloudDensity },
@@ -1228,8 +1228,8 @@ export function OceanScene() {
       uFlareGhosting: { value: params.flareGhosting },
       uFlareStreak: { value: params.flareStreak },
       uFlareAngle: { value: params.flareAngle },
-      uCameraHeight: { value: isIOS || isMobile ? 7.0 : 4.0 },
-      uCameraTilt: { value: isIOS || isMobile ? 0.8 : -0.1 }, // Look more upward on mobile to see horizon
+      uCameraHeight: { value: isIOS || isMobile ? 7.9 : 4.0 },
+      uCameraTilt: { value: isIOS || isMobile ? 2.0 : -0.1 }, // Look more upward on mobile to see horizon
     }
 
     uniformsRef.current = uniforms
