@@ -825,27 +825,91 @@ export function OceanScene() {
   const [goldPieces, setGoldPieces] = useState(0)
   const [isFishing, setIsFishing] = useState(false)
   const [markAngle, setMarkAngle] = useState(0)
-  const [feedbackState, setFeedbackState] = useState<"success" | "fail" | null>(null)
+  const [feedbackState, setFeedbackState] = useState<{ type: "success"; rarity: FishRarity } | { type: "fail" } | null>(null)
   const [showFishPopup, setShowFishPopup] = useState(false)
-  const [caughtFishImage, setCaughtFishImage] = useState("/images/fish-catch.png")
+  // Fish data table
+  type FishRarity = "common" | "uncommon" | "rare" | "epic" | "legendary"
+  
+  // Get color for rarity-based feedback
+  const getRarityColor = (rarity: FishRarity): string => {
+    switch (rarity) {
+      case "common":
+        return "rgba(156, 163, 175, 0.6)" // Gray
+      case "uncommon":
+        return "rgba(34, 197, 94, 0.6)" // Green
+      case "rare":
+        return "rgba(59, 130, 246, 0.6)" // Blue
+      case "epic":
+        return "rgba(163, 53, 238, 0.6)" // Purple
+      case "legendary":
+        return "rgba(255, 215, 0, 0.6)" // Gold
+      default:
+        return "rgba(255, 255, 255, 0.5)" // White fallback
+    }
+  }
+  
+  interface Fish {
+    id: string
+    name: string
+    rarity: FishRarity
+    image: string
+  }
+  
+  const fishTable: Fish[] = [
+    { id: "1", name: "Brinewhisk Silverfin", rarity: "common", image: "/images/fish-catch.png" },
+    { id: "2", name: "Cobalt Mudsnapper", rarity: "common", image: "/images/fish-catch-2.png" },
+    { id: "3", name: "Lanternscale Darter", rarity: "common", image: "/images/fish-catch-3.png" },
+    { id: "4", name: "Saffron Reefskipper", rarity: "uncommon", image: "/images/fish-catch-4.png" },
+    { id: "5", name: "Tanglejaw Spratling", rarity: "uncommon", image: "/images/fish-catch-5.png" },
+    { id: "6", name: "Velvet Currentgill", rarity: "uncommon", image: "/images/fish-catch-6.png" },
+    { id: "7", name: "Wickerback Driftfish", rarity: "rare", image: "/images/fish-catch-7.png" },
+    { id: "8", name: "Copperline Siltpicker", rarity: "rare", image: "/images/fish-catch-8.png" },
+    { id: "9", name: "Mistwater Spindleperch", rarity: "epic", image: "/images/fish-catch-9.png" },
+    { id: "10", name: "Cragfin Moonrunner", rarity: "epic", image: "/images/fish-catch-10.png" },
+    { id: "11", name: "Thornbelly Shallowskulk", rarity: "legendary", image: "/images/fish-catch-11.png" },
+    { id: "12", name: "Glimmerhook Tidecarp", rarity: "legendary", image: "/images/fish-catch-12.png" },
+  ]
+  
+  // Weighted probability system for fish rarity
+  // Weights determine relative probability of each rarity tier
+  const rarityWeights: Record<FishRarity, number> = {
+    common: 50,      // 50% chance total (16.67% per common fish)
+    uncommon: 25,    // 25% chance total (8.33% per uncommon fish)
+    rare: 15,        // 15% chance total (7.5% per rare fish)
+    epic: 7,         // 7% chance total (3.5% per epic fish)
+    legendary: 3,    // 3% chance total (1.5% per legendary fish)
+  }
+  
+  // Select a random fish based on weighted probabilities
+  const selectRandomFish = (): Fish => {
+    // Calculate total weight
+    const totalWeight = Object.values(rarityWeights).reduce((sum, weight) => sum + weight, 0)
+    
+    // Generate random number between 0 and totalWeight
+    let random = Math.random() * totalWeight
+    
+    // Select rarity based on weights
+    let selectedRarity: FishRarity = "common"
+    let cumulativeWeight = 0
+    
+    for (const [rarity, weight] of Object.entries(rarityWeights) as [FishRarity, number][]) {
+      cumulativeWeight += weight
+      if (random <= cumulativeWeight) {
+        selectedRarity = rarity
+        break
+      }
+    }
+    
+    // Filter fish by selected rarity and randomly pick one
+    const fishOfRarity = fishTable.filter(fish => fish.rarity === selectedRarity)
+    return fishOfRarity[Math.floor(Math.random() * fishOfRarity.length)]
+  }
+  
+  const [caughtFish, setCaughtFish] = useState<Fish | null>(null)
+  const [currentFish, setCurrentFish] = useState<Fish | null>(null) // Fish selected before minigame
   const [fishTransform, setFishTransform] = useState({ flip: 1, rotation: 0 })
   const fishingTimerRef = useRef<number | null>(null)
   const successWindowsRef = useRef<Array<{ start: number; end: number }>>([])
-  
-  const fishImages = [
-    "/images/fish-catch.png",
-    "/images/fish-catch-2.png",
-    "/images/fish-catch-3.png",
-    "/images/fish-catch-4.png",
-    "/images/fish-catch-5.png",
-    "/images/fish-catch-6.png",
-    "/images/fish-catch-7.png",
-    "/images/fish-catch-8.png",
-    "/images/fish-catch-9.png",
-    "/images/fish-catch-10.png",
-    "/images/fish-catch-11.png",
-    "/images/fish-catch-12.png",
-  ]
 
   
   // Net counts (how many of each type owned)
@@ -1252,11 +1316,16 @@ export function OceanScene() {
   // Fishing game handler - skill-based timing
   const handleCast = () => {
     if (!isFishing) {
+      // Randomly select a fish before the minigame starts using weighted probabilities
+      const randomFish = selectRandomFish()
+      setCurrentFish(randomFish)
+      
       // Start fishing minigame
       setIsFishing(true)
       setMarkAngle(0)
       
       // Generate 1-3 random success windows
+      // TODO: Difficulty will be affected by fish rarity in the future
       const numWindows = Math.floor(Math.random() * 3) + 1
       const windows: Array<{ start: number; end: number }> = []
       
@@ -1267,6 +1336,7 @@ export function OceanScene() {
       }
       
       successWindowsRef.current = windows
+      console.log("[v0] Selected fish:", randomFish.name, "Rarity:", randomFish.rarity)
       console.log("[v0] Generated success windows:", windows)
     }
   }
@@ -1300,13 +1370,11 @@ export function OceanScene() {
     
     console.log("[v0] Reel attempt - angle:", currentAngle.toFixed(1), "success:", success)
     
-    if (success) {
+    if (success && currentFish) {
+      // Catch the pre-selected fish
       setFishCaught((prev) => prev + 1)
-      setFeedbackState("success")
-      
-      // Randomly select a fish image
-      const randomFish = fishImages[Math.floor(Math.random() * fishImages.length)]
-      setCaughtFishImage(randomFish)
+      setCaughtFish(currentFish)
+      setFeedbackState({ type: "success", rarity: currentFish.rarity })
       
       // Randomly flip and rotate the fish
       const randomFlip = Math.random() > 0.5 ? 1 : -1
@@ -1318,9 +1386,12 @@ export function OceanScene() {
       // Hide fish popup after animation
       setTimeout(() => {
         setShowFishPopup(false)
+        setCaughtFish(null)
       }, 1500)
     } else {
-      setFeedbackState("fail")
+      setFeedbackState({ type: "fail" })
+      // Clear current fish on failure
+      setCurrentFish(null)
     }
     
     // Reset fishing state
@@ -1470,16 +1541,52 @@ export function OceanScene() {
             animation: "fishPopup 1.5s ease-out forwards",
           }}
         >
-          <img
-            src={caughtFishImage || "/placeholder.svg"}
-            alt="Fish caught!"
-            style={{
-              width: "200px",
-              height: "auto",
-              imageRendering: "pixelated",
-              transform: `scaleX(${fishTransform.flip}) rotate(${fishTransform.rotation}deg)`,
-            }}
-          />
+          {caughtFish && (
+            <>
+              <img
+                src={caughtFish.image || "/placeholder.svg"}
+                alt={caughtFish.name}
+                style={{
+                  width: "200px",
+                  height: "auto",
+                  imageRendering: "pixelated",
+                  transform: `scaleX(${fishTransform.flip}) rotate(${fishTransform.rotation}deg)`,
+                }}
+              />
+              <div
+                style={{
+                  marginTop: "8px",
+                  fontFamily: "PPNeueBit, monospace",
+                  fontSize: "clamp(16px, 1.5vw, 20px)",
+                  color: "rgba(255, 255, 255, 0.9)",
+                  textAlign: "center",
+                  textTransform: "lowercase",
+                  letterSpacing: "0.05em",
+                }}
+              >
+                {caughtFish.name}
+              </div>
+              <div
+                style={{
+                  marginTop: "4px",
+                  fontFamily: "PPNeueBit, monospace",
+                  fontSize: "clamp(12px, 1.2vw, 16px)",
+                  color: 
+                    caughtFish.rarity === "legendary" ? "rgba(255, 215, 0, 0.95)" :
+                    caughtFish.rarity === "epic" ? "rgba(163, 53, 238, 0.95)" :
+                    caughtFish.rarity === "rare" ? "rgba(59, 130, 246, 0.95)" :
+                    caughtFish.rarity === "uncommon" ? "rgba(34, 197, 94, 0.95)" :
+                    "rgba(156, 163, 175, 0.95)",
+                  textAlign: "center",
+                  textTransform: "uppercase",
+                  letterSpacing: "0.1em",
+                  fontWeight: "bold",
+                }}
+              >
+                {caughtFish.rarity}
+              </div>
+            </>
+          )}
         </div>
       )}
 
@@ -1494,11 +1601,11 @@ export function OceanScene() {
             bottom: 0,
             pointerEvents: "none",
             zIndex: 9999,
-            background: feedbackState === "success"
-              ? "radial-gradient(circle at center, transparent 40%, rgba(255, 255, 255, 0.3) 70%, rgba(255, 255, 255, 0.5) 100%)"
+            background: feedbackState.type === "success"
+              ? `radial-gradient(circle at center, transparent 40%, ${getRarityColor(feedbackState.rarity)} 70%, ${getRarityColor(feedbackState.rarity).replace("0.6", "0.8")} 100%)`
               : "radial-gradient(circle at center, transparent 40%, rgba(255, 50, 50, 0.4) 70%, rgba(255, 50, 50, 0.6) 100%)",
-            animation: feedbackState === "success"
-              ? "flashGreen 0.6s ease-out"
+            animation: feedbackState.type === "success"
+              ? "flashSuccess 0.6s ease-out"
               : "flashRed 0.6s ease-out, shake 0.5s ease-in-out",
           }}
         />
@@ -1530,7 +1637,7 @@ export function OceanScene() {
           20%, 40%, 60%, 80% { transform: translateX(8px); }
         }
         
-        @keyframes flashGreen {
+        @keyframes flashSuccess {
           0% { opacity: 1; }
           100% { opacity: 0; }
         }
