@@ -2548,10 +2548,13 @@ export function OceanScene() {
             bottom: "48px",
             left: "50%",
             transform: "translateX(-50%)",
-            width: "300px",
-            maxWidth: "90vw",
-            padding: "0 20px",
             zIndex: 201,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            height: "2.5rem",
+            width: "max-content",
+            padding: "0 1.5rem",
           }}>
             <input
               type="range"
@@ -2561,7 +2564,7 @@ export function OceanScene() {
               value={playerSliderPosition}
               onChange={(e) => handleBalanceSlider(parseFloat(e.target.value))}
               style={{
-                width: "100%",
+                width: "200px",
                 height: "8px",
                 backgroundColor: "rgba(255, 255, 255, 0.2)",
                 borderRadius: "4px",
