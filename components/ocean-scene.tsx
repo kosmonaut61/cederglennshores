@@ -1337,9 +1337,9 @@ export function OceanScene() {
   }, [updateScrollAnimations])
 
   // Version 2: Balancing game - handle slider movement (defined early for keyboard handler)
-  const handleBalanceSlider = useCallback((delta: number) => {
+  const handleBalanceSlider = useCallback((value: number) => {
     if (!isFishing || minigameVersion !== 2) return
-    setPlayerSliderPosition((prev) => Math.max(-1, Math.min(1, prev + delta)))
+    setPlayerSliderPosition(Math.max(-1, Math.min(1, value)))
   }, [isFishing, minigameVersion])
 
   // Version 3: Tapping game - handle tap (defined early for keyboard handler)
@@ -1364,14 +1364,14 @@ export function OceanScene() {
         subtitlesPausedRef.current = false
       }
       
-      // Version 2: Arrow keys for balancing
+      // Version 2: Arrow keys for balancing (optional, slider is primary control)
       if (isFishing && minigameVersion === 2) {
         if (e.key === "ArrowLeft") {
           e.preventDefault()
-          handleBalanceSlider(-0.1)
+          setPlayerSliderPosition((prev) => Math.max(-1, prev - 0.1))
         } else if (e.key === "ArrowRight") {
           e.preventDefault()
-          handleBalanceSlider(0.1)
+          setPlayerSliderPosition((prev) => Math.max(-1, Math.min(1, prev + 0.1)))
         }
       }
       // Version 3: Spacebar for tapping
@@ -1534,9 +1534,9 @@ export function OceanScene() {
         return Math.max(-1, Math.min(1, newDirection))
       })
 
-      // Check if player is counterbalancing (within 30 degrees = 0.5 units)
+      // Check if player is counterbalancing (within ~12 degrees = 0.2 units)
       const balanceDiff = Math.abs(fishPullDirection - playerSliderPosition)
-      if (balanceDiff < 0.5) {
+      if (balanceDiff < 0.2) {
         // Player is counterbalancing - tire the fish
         setTireProgress((prev) => Math.min(100, prev + 2))
       } else {
@@ -2468,8 +2468,8 @@ export function OceanScene() {
               const playerX = centerX + Math.cos(playerAngle) * radius
               const playerY = centerY - Math.sin(playerAngle) * radius
               
-              // Balance zone (30 degrees = π/6 radians tolerance)
-              const tolerance = Math.PI / 6
+              // Balance zone (~12 degrees = π/15 radians tolerance)
+              const tolerance = Math.PI / 15
               const balanceZoneStart = fishAngle - tolerance
               const balanceZoneEnd = fishAngle + tolerance
               const zoneX1 = centerX + Math.cos(balanceZoneStart) * radius
@@ -2525,22 +2525,50 @@ export function OceanScene() {
             })()}
           </svg>
 
-          {/* Slider Controls */}
-          <div style={{ display: "flex", gap: "10px" }}>
-            <button
-              onClick={() => handleBalanceSlider(-0.1)}
-              className="pixel-button"
-              style={{ fontSize: "14px", padding: "8px 16px" }}
-            >
-              ←
-            </button>
-            <button
-              onClick={() => handleBalanceSlider(0.1)}
-              className="pixel-button"
-              style={{ fontSize: "14px", padding: "8px 16px" }}
-            >
-              →
-            </button>
+          {/* Slider Control */}
+          <div style={{ width: "100%", padding: "0 20px" }}>
+            <input
+              type="range"
+              min="-1"
+              max="1"
+              step="0.01"
+              value={playerSliderPosition}
+              onChange={(e) => handleBalanceSlider(parseFloat(e.target.value))}
+              style={{
+                width: "100%",
+                height: "8px",
+                backgroundColor: "rgba(255, 255, 255, 0.2)",
+                borderRadius: "4px",
+                outline: "none",
+                cursor: "pointer",
+                WebkitAppearance: "none",
+                appearance: "none",
+              }}
+              onInput={(e) => {
+                const target = e.target as HTMLInputElement
+                handleBalanceSlider(parseFloat(target.value))
+              }}
+            />
+            <style>{`
+              input[type="range"]::-webkit-slider-thumb {
+                -webkit-appearance: none;
+                appearance: none;
+                width: 20px;
+                height: 20px;
+                background: rgba(255, 255, 255, 0.9);
+                border: 2px solid rgba(255, 255, 255, 1);
+                border-radius: 50%;
+                cursor: pointer;
+              }
+              input[type="range"]::-moz-range-thumb {
+                width: 20px;
+                height: 20px;
+                background: rgba(255, 255, 255, 0.9);
+                border: 2px solid rgba(255, 255, 255, 1);
+                border-radius: 50%;
+                cursor: pointer;
+              }
+            `}</style>
           </div>
 
           {/* Tire Progress */}
