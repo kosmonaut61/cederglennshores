@@ -960,6 +960,7 @@ export function OceanScene() {
   const tapCooldownRef = useRef(0)
   const successWindowsRef = useRef<Array<{ start: number; end: number }>>([])
   const feedbackKeyRef = useRef(0)
+  const fishSwingCounterRef = useRef(0) // Track small jerks before big swing
 
   
   // Net counts (how many of each type owned)
@@ -1446,7 +1447,8 @@ export function OceanScene() {
         setFishPullDirection(0)
         setPlayerSliderPosition(0)
         setTireProgress(0)
-        setBalanceGameTimer(15) // 15 seconds to catch
+        setBalanceGameTimer(7) // 7 seconds to catch
+        fishSwingCounterRef.current = 0
       } else if (minigameVersion === 3) {
         // Version 3: Tapping game
         setLineTension(0)
@@ -1531,15 +1533,27 @@ export function OceanScene() {
     if (!isFishing || minigameVersion !== 2) return
 
     const gameLoop = setInterval(() => {
-      // Fish pulls randomly left or right
+      // Fish pull pattern: small jerks, then dramatic swing
+      fishSwingCounterRef.current += 1
+      const isSwingTime = fishSwingCounterRef.current % 8 === 0 // Big swing every 8 ticks
+      
       setFishPullDirection((prev) => {
-        const newDirection = prev + (Math.random() - 0.5) * 0.3
+        let newDirection
+        if (isSwingTime) {
+          // Dramatic swing - move significantly in a random direction
+          const swingDirection = Math.random() > 0.5 ? 1 : -1
+          const swingAmount = 0.6 + Math.random() * 0.3 // 0.6 to 0.9
+          newDirection = prev + (swingDirection * swingAmount)
+        } else {
+          // Small jerks - subtle movements
+          newDirection = prev + (Math.random() - 0.5) * 0.15
+        }
         return Math.max(-1, Math.min(1, newDirection))
       })
 
-      // Check if player is counterbalancing (within ~12 degrees = 0.2 units)
+      // Check if player is counterbalancing (within ~9 degrees = 0.15 units)
       const balanceDiff = Math.abs(fishPullDirection - playerSliderPosition)
-      const isInSafeZone = balanceDiff < 0.2
+      const isInSafeZone = balanceDiff < 0.15
       
       if (isInSafeZone) {
         // Player is counterbalancing - tire the fish
@@ -2485,8 +2499,8 @@ export function OceanScene() {
               const playerX = centerX + Math.cos(playerAngle) * radius
               const playerY = centerY - Math.sin(playerAngle) * radius
               
-              // Balance zone (~12 degrees = π/15 radians tolerance)
-              const tolerance = Math.PI / 15
+              // Balance zone (~9 degrees = π/20 radians tolerance)
+              const tolerance = Math.PI / 20
               const balanceZoneStart = fishAngle - tolerance
               const balanceZoneEnd = fishAngle + tolerance
               const zoneX1 = centerX + Math.cos(balanceZoneStart) * radius
@@ -2553,8 +2567,10 @@ export function OceanScene() {
             alignItems: "center",
             justifyContent: "center",
             height: "2.5rem",
+            lineHeight: "2.5rem",
             width: "max-content",
             padding: "0 1.5rem",
+            boxSizing: "border-box",
           }}>
             <input
               type="range"
